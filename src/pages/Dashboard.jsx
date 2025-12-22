@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
+import AccessDenied from "@/components/AccessDenied";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
 import { Users, Phone, Package, ClipboardList, TrendingUp, Target, DollarSign, AlertTriangle } from "lucide-react";
 
@@ -16,11 +17,16 @@ import ExportButton from "@/components/dashboard/ExportButton";
 const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
 
 export default function Dashboard() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState("All Branches");
   const [dateRange, setDateRange] = useState({
     from: subDays(new Date(), 6),
     to: new Date()
   });
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   const { data: branchReports = [], isLoading: loadingBranch } = useQuery({
     queryKey: ["branchReports"],
@@ -119,6 +125,16 @@ export default function Dashboard() {
     // Export functionality placeholder
     console.log(`Exporting as ${exportFormat}`);
   };
+
+  // Check access - only admin and analyst can access dashboard
+  if (currentUser && currentUser.role !== "admin" && currentUser.department !== "Analyst") {
+    return <AccessDenied />;
+  }
+
+  // Check if user has branch/department access
+  if (currentUser && !currentUser.branch && !currentUser.department && currentUser.role !== "admin") {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50">
