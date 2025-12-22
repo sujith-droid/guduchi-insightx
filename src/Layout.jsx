@@ -30,14 +30,19 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
-  { name: "Reception", icon: Users, page: "Reception" },
-  { name: "Customer Support", icon: Phone, page: "CustomerSupport" },
-  { name: "Pharmacy", icon: Package, page: "Pharmacy" },
-  { name: "Marketing", icon: Megaphone, page: "Marketing" },
-  { name: "Center Manager", icon: ClipboardList, page: "CenterManager" },
-  { name: "Reports", icon: FileText, page: "Reports" },
+  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard", departments: ["Analyst"] },
+  { name: "Reception", icon: Users, page: "Reception", departments: ["Analyst", "Reception"] },
+  { name: "Customer Support", icon: Phone, page: "CustomerSupport", departments: ["Analyst", "Customer Support"] },
+  { name: "Pharmacy", icon: Package, page: "Pharmacy", departments: ["Analyst", "Pharmacy"] },
+  { name: "Marketing", icon: Megaphone, page: "Marketing", departments: ["Analyst", "Marketing"] },
+  { name: "Center Manager", icon: ClipboardList, page: "CenterManager", departments: ["Analyst", "Center Manager"] },
+  { name: "Reports", icon: FileText, page: "Reports", departments: ["Analyst"] },
 ];
+
+const canAccessPage = (item, userDepartment) => {
+  if (!userDepartment) return true;
+  return item.departments.includes(userDepartment);
+};
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -116,7 +121,7 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Navigation */}
         <nav className="p-4 space-y-1">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter(item => canAccessPage(item, currentUser?.department)).map((item) => {
             const isActive = currentPageName === item.page;
             return (
               <Link
@@ -152,7 +157,7 @@ export default function Layout({ children, currentPageName }) {
                     {currentUser?.full_name || "User"}
                   </p>
                   <p className="text-xs text-slate-500 truncate">
-                    {currentUser?.branch || "No branch"}
+                    {currentUser?.department || "No department"}
                   </p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-slate-400" />

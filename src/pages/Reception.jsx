@@ -20,6 +20,16 @@ export default function Reception() {
     from: subDays(new Date(), 6),
     to: new Date()
   });
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useState(() => {
+    base44.auth.me().then(user => {
+      setCurrentUser(user);
+      if (user.department !== "Analyst" && user.branch) {
+        setSelectedBranch(user.branch);
+      }
+    }).catch(() => {});
+  }, []);
 
   const { data: branchReports = [], isLoading } = useQuery({
     queryKey: ["branchReports"],
@@ -94,7 +104,13 @@ export default function Reception() {
             <p className="text-sm text-slate-500 mt-1">Walk-ins, appointments & QR scans</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+            {currentUser?.department === "Analyst" ? (
+              <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+            ) : (
+              <div className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700">
+                {currentUser?.branch || "No branch"}
+              </div>
+            )}
             <DateRangeSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
           </div>
         </div>
