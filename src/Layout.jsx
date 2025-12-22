@@ -30,19 +30,24 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard", departments: ["Analyst"] },
+  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard", departments: ["Analyst"], analystAdminOnly: true },
   { name: "Reception", icon: Users, page: "Reception", departments: ["Analyst", "Reception"] },
   { name: "Customer Support", icon: Phone, page: "CustomerSupport", departments: ["Analyst", "Customer Support"] },
   { name: "Pharmacy", icon: Package, page: "Pharmacy", departments: ["Analyst", "Pharmacy"] },
   { name: "Marketing", icon: Megaphone, page: "Marketing", departments: ["Analyst", "Marketing"] },
   { name: "Center Manager", icon: ClipboardList, page: "CenterManager", departments: ["Analyst", "Center Manager"] },
-  { name: "Reports", icon: FileText, page: "Reports", departments: ["Analyst"] },
+  { name: "Reports", icon: FileText, page: "Reports", departments: ["Analyst"], analystAdminOnly: true },
   { name: "User Management", icon: Users, page: "UserManagement", adminOnly: true },
+  { name: "Settings", icon: Settings, page: "Settings", alwaysShow: true },
 ];
 
 const canAccessPage = (item, user) => {
+  if (item.alwaysShow) return true;
   if (item.adminOnly) return user?.role === "admin";
-  if (!user?.department) return true;
+  if (item.analystAdminOnly) {
+    return user?.role === "admin" || user?.department === "Analyst";
+  }
+  if (!user?.department || !user?.branch) return false;
   if (!item.departments) return true;
   return item.departments.includes(user.department);
 };
