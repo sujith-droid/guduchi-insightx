@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval, startOfWeek, startOfMonth, endOfWeek, endOfMonth } from "date-fns";
@@ -21,6 +21,7 @@ import ReportTable from "@/components/dashboard/ReportTable";
 const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
 
 export default function Reports() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState("All Branches");
   const [dateRange, setDateRange] = useState({
     from: subDays(new Date(), 6),
@@ -28,6 +29,10 @@ export default function Reports() {
   });
   const [reportType, setReportType] = useState("daily");
   const [showAddDialog, setShowAddDialog] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
   const [newReport, setNewReport] = useState({
     branch: "",
     report_date: format(new Date(), "yyyy-MM-dd"),
@@ -118,15 +123,16 @@ export default function Reports() {
             <p className="text-sm text-slate-500 mt-1">Generate and export reports</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+            <BranchSelector value={selectedBranch} onChange={setSelectedBranch} user={currentUser} />
             <DateRangeSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Report
-                </Button>
-              </DialogTrigger>
+            {currentUser?.department !== "Analyst" && (
+              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add Report
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Submit Daily Report</DialogTitle>
@@ -193,6 +199,7 @@ export default function Reports() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            )}
           </div>
         </div>
 
