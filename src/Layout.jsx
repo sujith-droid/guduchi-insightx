@@ -37,11 +37,14 @@ const NAV_ITEMS = [
   { name: "Marketing", icon: Megaphone, page: "Marketing", departments: ["Analyst", "Marketing"] },
   { name: "Center Manager", icon: ClipboardList, page: "CenterManager", departments: ["Analyst", "Center Manager"] },
   { name: "Reports", icon: FileText, page: "Reports", departments: ["Analyst"] },
+  { name: "User Management", icon: Users, page: "UserManagement", adminOnly: true },
 ];
 
-const canAccessPage = (item, userDepartment) => {
-  if (!userDepartment) return true;
-  return item.departments.includes(userDepartment);
+const canAccessPage = (item, user) => {
+  if (item.adminOnly) return user?.role === "admin";
+  if (!user?.department) return true;
+  if (!item.departments) return true;
+  return item.departments.includes(user.department);
 };
 
 export default function Layout({ children, currentPageName }) {
@@ -121,7 +124,7 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Navigation */}
         <nav className="p-4 space-y-1">
-          {NAV_ITEMS.filter(item => canAccessPage(item, currentUser?.department)).map((item) => {
+          {NAV_ITEMS.filter(item => canAccessPage(item, currentUser)).map((item) => {
             const isActive = currentPageName === item.page;
             return (
               <Link

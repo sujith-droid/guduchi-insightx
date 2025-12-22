@@ -6,6 +6,7 @@ import Pharmacy from './pages/Pharmacy';
 import Reception from './pages/Reception';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import UserManagement from './pages/UserManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -18,6 +19,7 @@ export const PAGES = {
     "Reception": Reception,
     "Reports": Reports,
     "Settings": Settings,
+    "UserManagement": UserManagement,
 }
 
 export const pagesConfig = {
