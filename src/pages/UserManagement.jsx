@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Mail, Building2, Briefcase, Shield, Plus, Pencil, Loader2 } from "lucide-react";
+import { Users, Mail, Building2, Briefcase, Save, Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
@@ -18,15 +19,18 @@ export default function UserManagement() {
   const [currentUser, setCurrentUser] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [formData, setFormData] = useState({
-    branch: "",
-    department: ""
-  });
 
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
+    base44.auth.me().then(user => {
+      setCurrentUser(user);
+      if (user.role !== "admin") {
+        window.location.href = "/";
+      }
+    }).catch(() => {
+      window.location.href = "/";
+    });
   }, []);
 
   const { data: allUsers = [], isLoading } = useQuery({
@@ -37,36 +41,34 @@ export default function UserManagement() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, userData }) => {
-      await base44.entities.User.update(userId, userData);
+      return await base44.entities.User.update(userId, userData);
+    },
+    onSuccess: async (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       
       // Send email notification
-      const user = allUsers.find(u => u.id === userId);
-      if (user) {
+      try {
         await base44.integrations.Core.SendEmail({
-          to: user.email,
+          to: variables.userEmail,
           subject: "Access Granted - BranchIQ Analytics",
-          body: `
-Hello ${user.full_name || 'User'},
+          body: `Hello,
 
-You have been granted access to the BranchIQ Analytics platform.
+You have been granted access to BranchIQ Analytics platform.
 
-Your Access Details:
-- Branch: ${userData.branch || 'Not assigned'}
-- Department: ${userData.department || 'Not assigned'}
+Your Details:
+- Branch: ${variables.userData.branch || "Not assigned"}
+- Department: ${variables.userData.department || "Not assigned"}
 
-You can now log in and access your department's data for your assigned branch.
-
-Login at: ${window.location.origin}
+You can now login and access your department's data at your assigned branch.
 
 Best regards,
-BranchIQ Team
-          `.trim()
+BranchIQ Team`
         });
+      } catch (e) {
+        console.error("Failed to send email:", e);
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("User access updated and email sent");
+      
+      toast.success("User access updated successfully");
       setShowEditDialog(false);
       setEditingUser(null);
     },
@@ -76,8 +78,10 @@ BranchIQ Team
   });
 
   const handleEditUser = (user) => {
-    setEditingUser(user);
-    setFormData({
+    setEditingUser({
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
       branch: user.branch || "",
       department: user.department || ""
     });
@@ -85,96 +89,102 @@ BranchIQ Team
   };
 
   const handleSaveUser = () => {
-    if (!formData.branch || !formData.department) {
+    if (!editingUser.branch || !editingUser.department) {
       toast.error("Please select both branch and department");
       return;
     }
+
     updateUserMutation.mutate({
       userId: editingUser.id,
-      userData: formData
+      userEmail: editingUser.email,
+      userData: {
+        branch: editingUser.branch,
+        department: editingUser.department
+      }
     });
   };
 
-  if (currentUser?.role !== "admin") {
-    return (
-      <div className="min-h-screen bg-slate-50/50 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <Shield className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Access Denied</h2>
-              <p className="text-slate-600">You don't have permission to access user management.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!currentUser || currentUser.role !== "admin") {
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-slate-50/50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-            <Users className="w-6 h-6" />
-            User Management
-          </h1>
+          <h1 className="text-2xl font-semibold text-slate-900">User Management</h1>
           <p className="text-sm text-slate-500 mt-1">Manage user access and permissions</p>
         </div>
 
-        {/* Users List */}
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">All Users</CardTitle>
-            <CardDescription>Assign branch and department access to users</CardDescription>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              All Users
+            </CardTitle>
+            <CardDescription>Assign branches and departments to users</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
               </div>
             ) : (
-              <div className="space-y-3">
-                {allUsers.map(user => (
-                  <div key={user.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <p className="font-medium text-slate-900">{user.full_name || "No name"}</p>
-                        {user.role === "admin" && (
-                          <Badge className="bg-indigo-100 text-indigo-700">Admin</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          {user.email}
-                        </span>
-                        {user.branch && (
-                          <span className="flex items-center gap-1">
-                            <Building2 className="w-3 h-3" />
-                            {user.branch}
-                          </span>
-                        )}
-                        {user.department && (
-                          <span className="flex items-center gap-1">
-                            <Briefcase className="w-3 h-3" />
-                            {user.department}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditUser(user)}
-                      className="gap-2"
-                    >
-                      <Pencil className="w-3 h-3" />
-                      Edit Access
-                    </Button>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Branch</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allUsers.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.full_name || "-"}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          {user.branch ? (
+                            <Badge variant="outline" className="bg-indigo-50 text-indigo-700">
+                              {user.branch}
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-400">Not assigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {user.department ? (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700">
+                              {user.department}
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-400">Not assigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {user.role === "admin" ? "Admin" : "User"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditUser(user)}
+                            disabled={user.email === currentUser.email}
+                          >
+                            Edit Access
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
@@ -186,61 +196,83 @@ BranchIQ Team
             <DialogHeader>
               <DialogTitle>Edit User Access</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>User</Label>
-                <Input value={editingUser?.full_name || editingUser?.email || ""} disabled className="bg-slate-50" />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={editingUser?.email || ""} disabled className="bg-slate-50" />
-              </div>
-              <div className="space-y-2">
-                <Label>Branch</Label>
-                <Select value={formData.branch} onValueChange={(v) => setFormData({ ...formData, branch: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BRANCHES.map(b => (
-                      <SelectItem key={b} value={b}>{b}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Select value={formData.department} onValueChange={(v) => setFormData({ ...formData, department: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEPARTMENTS.map(d => (
-                      <SelectItem key={d} value={d}>{d}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSaveUser} 
-                  disabled={updateUserMutation.isPending}
-                  className="gap-2"
-                >
-                  {updateUserMutation.isPending ? (
-                    <>
+            {editingUser && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>User</Label>
+                  <Input value={editingUser.email} disabled className="bg-slate-50" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Branch</Label>
+                  <Select 
+                    value={editingUser.branch} 
+                    onValueChange={(v) => setEditingUser({ ...editingUser, branch: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BRANCHES.map(b => (
+                        <SelectItem key={b} value={b}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-slate-400" />
+                            {b}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select 
+                    value={editingUser.department} 
+                    onValueChange={(v) => setEditingUser({ ...editingUser, department: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENTS.map(d => (
+                        <SelectItem key={d} value={d}>
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-slate-400" />
+                            {d}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <Mail className="w-4 h-4 inline mr-1" />
+                    An email notification will be sent to the user with their access details.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSaveUser} 
+                    disabled={updateUserMutation.isPending}
+                    className="gap-2"
+                  >
+                    {updateUserMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save & Send Email"
-                  )}
-                </Button>
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save & Notify
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
