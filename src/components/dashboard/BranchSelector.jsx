@@ -3,8 +3,10 @@ import { Building2 } from "lucide-react";
 
 const BRANCHES = ["All Branches", "Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
 
-export default function BranchSelector({ value, onChange, showAll = true }) {
-  const branches = showAll ? BRANCHES : BRANCHES.slice(1);
+export default function BranchSelector({ value, onChange, showAll = true, user }) {
+  // Admin and Analyst always see all branches
+  const shouldShowAll = showAll || user?.role === "admin" || user?.department === "Analyst";
+  const branches = shouldShowAll ? BRANCHES : BRANCHES.slice(1);
 
   return (
     <Select value={value} onValueChange={onChange}>
