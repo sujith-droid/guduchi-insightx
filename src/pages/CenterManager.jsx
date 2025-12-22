@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, AlertCircle, CheckCircle, FileText, Building2, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users, DollarSign, TrendingUp, TrendingDown, Building2 } from "lucide-react";
 
 import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
 import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
-import DepartmentCard from "@/components/dashboard/DepartmentCard";
 import ReportTable from "@/components/dashboard/ReportTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +19,6 @@ export default function CenterManager() {
     from: subDays(new Date(), 6),
     to: new Date()
   });
-  const [showAddDialog, setShowAddDialog] = useState(false);
-
-  const queryClient = useQueryClient();
 
   const { data: branchReports = [], isLoading } = useQuery({
     queryKey: ["branchReports"],
@@ -43,57 +33,61 @@ export default function CenterManager() {
   });
 
   // KPIs
-  const totalStaffPresent = filteredReports.reduce((sum, r) => sum + (r.center_manager?.staff_present || 0), 0);
-  const totalStaff = filteredReports.reduce((sum, r) => sum + (r.center_manager?.staff_total || 0), 0);
-  const issuesRaised = filteredReports.reduce((sum, r) => sum + (r.center_manager?.issues_raised || 0), 0);
-  const issuesResolved = filteredReports.reduce((sum, r) => sum + (r.center_manager?.issues_resolved || 0), 0);
+  const totalPatients = filteredReports.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0);
+  const totalRevenue = filteredReports.reduce((sum, r) => sum + (r.center_manager?.revenue || 0), 0);
+  const totalProjectedPatients = filteredReports.reduce((sum, r) => sum + (r.center_manager?.projected_patients || 0), 0);
+  const totalProjectedRevenue = filteredReports.reduce((sum, r) => sum + (r.center_manager?.projected_revenue || 0), 0);
 
-  const attendanceRate = totalStaff > 0 ? ((totalStaffPresent / totalStaff) * 100).toFixed(1) : 0;
-  const resolutionRate = issuesRaised > 0 ? ((issuesResolved / issuesRaised) * 100).toFixed(1) : 0;
+  const patientDeviation = totalProjectedPatients > 0 
+    ? (((totalPatients - totalProjectedPatients) / totalProjectedPatients) * 100).toFixed(1) 
+    : 0;
+  const revenueDeviation = totalProjectedRevenue > 0 
+    ? (((totalRevenue - totalProjectedRevenue) / totalProjectedRevenue) * 100).toFixed(1) 
+    : 0;
 
   // Branch summaries
   const branchSummaries = BRANCHES.map(branch => {
     const data = filteredReports.filter(r => r.branch === branch);
-    const walkIns = data.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0);
-    const revenue = data.reduce((sum, r) => sum + (r.pharmacy?.revenue || 0), 0);
-    const calls = data.reduce((sum, r) => sum + (r.customer_support?.incoming_calls || 0), 0);
-    const issues = data.reduce((sum, r) => sum + (r.center_manager?.issues_raised || 0), 0);
-    const resolved = data.reduce((sum, r) => sum + (r.center_manager?.issues_resolved || 0), 0);
-    const staffPresent = data.reduce((sum, r) => sum + (r.center_manager?.staff_present || 0), 0);
-    const staffTotal = data.reduce((sum, r) => sum + (r.center_manager?.staff_total || 0), 0);
+    const patients = data.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0);
+    const revenue = data.reduce((sum, r) => sum + (r.center_manager?.revenue || 0), 0);
+    const projPatients = data.reduce((sum, r) => sum + (r.center_manager?.projected_patients || 0), 0);
+    const projRevenue = data.reduce((sum, r) => sum + (r.center_manager?.projected_revenue || 0), 0);
+    
+    const patDev = projPatients > 0 ? (((patients - projPatients) / projPatients) * 100).toFixed(1) : 0;
+    const revDev = projRevenue > 0 ? (((revenue - projRevenue) / projRevenue) * 100).toFixed(1) : 0;
     
     return {
       branch,
-      walkIns,
+      patients,
       revenue,
-      calls,
-      issues,
-      resolved,
-      attendance: staffTotal > 0 ? ((staffPresent / staffTotal) * 100).toFixed(0) : 0,
-      status: issues > resolved ? "warning" : "good"
+      patientDeviation: patDev,
+      revenueDeviation: revDev,
+      status: parseFloat(patDev) >= 0 && parseFloat(revDev) >= 0 ? "good" : "warning"
     };
   });
 
-  // Recent operational notes
-  const recentNotes = filteredReports
-    .filter(r => r.center_manager?.operational_notes)
-    .map(r => ({
-      date: format(parseISO(r.report_date), "MMM d"),
-      branch: r.branch,
-      note: r.center_manager.operational_notes
-    }))
-    .slice(0, 10);
-
   // Table data
-  const tableData = filteredReports.map(r => ({
-    date: format(parseISO(r.report_date), "MMM d, yyyy"),
-    branch: r.branch,
-    staffPresent: r.center_manager?.staff_present || 0,
-    staffTotal: r.center_manager?.staff_total || 0,
-    issuesRaised: r.center_manager?.issues_raised || 0,
-    issuesResolved: r.center_manager?.issues_resolved || 0,
-    notes: r.center_manager?.operational_notes || ""
-  })).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const tableData = filteredReports.map(r => {
+    const patDev = r.center_manager?.projected_patients > 0 
+      ? (((r.center_manager?.number_of_patients || 0) - r.center_manager?.projected_patients) / r.center_manager?.projected_patients * 100).toFixed(1)
+      : 0;
+    const revDev = r.center_manager?.projected_revenue > 0 
+      ? (((r.center_manager?.revenue || 0) - r.center_manager?.projected_revenue) / r.center_manager?.projected_revenue * 100).toFixed(1)
+      : 0;
+    
+    return {
+      date: format(parseISO(r.report_date), "MMM d, yyyy"),
+      branch: r.branch,
+      patients: r.center_manager?.number_of_patients || 0,
+      projectedPatients: r.center_manager?.projected_patients || 0,
+      patientDev: patDev,
+      revenue: r.center_manager?.revenue || 0,
+      projectedRevenue: r.center_manager?.projected_revenue || 0,
+      revenueDev: revDev,
+      trackingDays: r.center_manager?.tracking_days || 30,
+      notes: r.center_manager?.operational_notes || ""
+    };
+  }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -102,7 +96,7 @@ export default function CenterManager() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Center Manager</h1>
-            <p className="text-sm text-slate-500 mt-1">Branch operations & staff management</p>
+            <p className="text-sm text-slate-500 mt-1">Patient count, revenue & performance tracking</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
@@ -112,10 +106,32 @@ export default function CenterManager() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <KPICard title="Attendance Rate" value={`${attendanceRate}%`} icon={Users} trend={parseFloat(attendanceRate) > 90 ? "up" : "down"} />
-          <KPICard title="Staff Present" value={totalStaffPresent} icon={Users} subtitle={`of ${totalStaff} total`} />
-          <KPICard title="Issues Raised" value={issuesRaised} icon={AlertCircle} trend={issuesRaised > 10 ? "down" : "neutral"} />
-          <KPICard title="Resolution Rate" value={`${resolutionRate}%`} icon={CheckCircle} trend={parseFloat(resolutionRate) > 80 ? "up" : "down"} />
+          <KPICard 
+            title="Total Patients" 
+            value={totalPatients} 
+            icon={Users} 
+            trend={parseFloat(patientDeviation) >= 0 ? "up" : "down"}
+            subtitle={`${patientDeviation}% vs projected`}
+          />
+          <KPICard 
+            title="Total Revenue" 
+            value={`₹${(totalRevenue / 1000).toFixed(1)}K`} 
+            icon={DollarSign} 
+            trend={parseFloat(revenueDeviation) >= 0 ? "up" : "down"}
+            subtitle={`${revenueDeviation}% vs projected`}
+          />
+          <KPICard 
+            title="Patient Deviation" 
+            value={`${patientDeviation}%`} 
+            icon={parseFloat(patientDeviation) >= 0 ? TrendingUp : TrendingDown}
+            trend={parseFloat(patientDeviation) >= 0 ? "up" : "down"}
+          />
+          <KPICard 
+            title="Revenue Deviation" 
+            value={`${revenueDeviation}%`} 
+            icon={parseFloat(revenueDeviation) >= 0 ? TrendingUp : TrendingDown}
+            trend={parseFloat(revenueDeviation) >= 0 ? "up" : "down"}
+          />
         </div>
 
         {/* Branch Summaries */}
@@ -132,27 +148,31 @@ export default function CenterManager() {
                         {branch.branch}
                       </CardTitle>
                       <Badge variant="secondary" className={branch.status === "good" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}>
-                        {branch.status === "good" ? "On Track" : "Needs Attention"}
+                        {branch.status === "good" ? "On Track" : "Below Target"}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xl font-semibold text-slate-900">{branch.walkIns}</p>
-                        <p className="text-xs text-slate-500">Walk-ins</p>
+                        <p className="text-xl font-semibold text-slate-900">{branch.patients}</p>
+                        <p className="text-xs text-slate-500">Patients</p>
                       </div>
                       <div>
                         <p className="text-xl font-semibold text-slate-900">₹{(branch.revenue / 1000).toFixed(1)}K</p>
                         <p className="text-xs text-slate-500">Revenue</p>
                       </div>
                       <div>
-                        <p className="text-xl font-semibold text-slate-900">{branch.attendance}%</p>
-                        <p className="text-xs text-slate-500">Attendance</p>
+                        <p className={`text-xl font-semibold ${parseFloat(branch.patientDeviation) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {branch.patientDeviation}%
+                        </p>
+                        <p className="text-xs text-slate-500">Patient Dev.</p>
                       </div>
                       <div>
-                        <p className="text-xl font-semibold text-slate-900">{branch.issues - branch.resolved}</p>
-                        <p className="text-xs text-slate-500">Open Issues</p>
+                        <p className={`text-xl font-semibold ${parseFloat(branch.revenueDeviation) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {branch.revenueDeviation}%
+                        </p>
+                        <p className="text-xs text-slate-500">Revenue Dev.</p>
                       </div>
                     </div>
                   </CardContent>
@@ -162,31 +182,6 @@ export default function CenterManager() {
           </div>
         )}
 
-        {/* Operational Notes */}
-        {recentNotes.length > 0 && (
-          <Card className="border-0 shadow-sm mb-8">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Recent Operational Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentNotes.map((note, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                    <Badge variant="outline" className="shrink-0">{note.branch}</Badge>
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-700">{note.note}</p>
-                      <p className="text-xs text-slate-400 mt-1">{note.date}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Table */}
         <ReportTable
           title="Daily Reports"
@@ -194,12 +189,21 @@ export default function CenterManager() {
           columns={[
             { header: "Date", accessor: "date" },
             { header: "Branch", accessor: "branch" },
-            { header: "Staff", accessor: "staffPresent", render: (val, row) => `${val}/${row.staffTotal}` },
-            { header: "Issues", accessor: "issuesRaised" },
-            { header: "Resolved", accessor: "issuesResolved" },
-            { header: "Notes", accessor: "notes", render: (val) => (
-              val ? <span className="text-sm text-slate-600 truncate max-w-xs block">{val.substring(0, 50)}...</span> : "-"
-            )}
+            { header: "Patients", accessor: "patients" },
+            { header: "Proj. Patients", accessor: "projectedPatients" },
+            { header: "Pat. Dev.", accessor: "patientDev", render: (val) => (
+              <span className={parseFloat(val) >= 0 ? "text-emerald-600 font-medium" : "text-red-600 font-medium"}>
+                {val}%
+              </span>
+            )},
+            { header: "Revenue", accessor: "revenue", render: (val) => `₹${val.toLocaleString()}` },
+            { header: "Proj. Revenue", accessor: "projectedRevenue", render: (val) => `₹${val.toLocaleString()}` },
+            { header: "Rev. Dev.", accessor: "revenueDev", render: (val) => (
+              <span className={parseFloat(val) >= 0 ? "text-emerald-600 font-medium" : "text-red-600 font-medium"}>
+                {val}%
+              </span>
+            )},
+            { header: "Days", accessor: "trackingDays" }
           ]}
         />
       </div>

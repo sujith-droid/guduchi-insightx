@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Phone, PhoneMissed, CheckCircle, Clock, BarChart3 } from "lucide-react";
+import { Phone, PhoneOutgoing, Calendar, Users, CheckCircle, Flame } from "lucide-react";
 
 import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
@@ -10,7 +10,7 @@ import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
 import TrendChart from "@/components/dashboard/TrendChart";
 import BranchComparisonChart from "@/components/dashboard/BranchComparisonChart";
 import ReportTable from "@/components/dashboard/ReportTable";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
 
@@ -34,14 +34,40 @@ export default function CustomerSupport() {
   });
 
   // KPIs
-  const totalCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.incoming_calls || 0), 0);
-  const missedCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.missed_calls || 0), 0);
-  const followUpsDone = filteredReports.reduce((sum, r) => sum + (r.customer_support?.follow_ups_done || 0), 0);
-  const pendingFollowUps = filteredReports.reduce((sum, r) => sum + (r.customer_support?.pending_follow_ups || 0), 0);
-  const resolved = filteredReports.reduce((sum, r) => sum + (r.customer_support?.resolved || 0), 0);
+  const totalAnsweredCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0);
+  const totalAppointments = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0);
+  const totalOutboundCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0);
 
-  const callAnswerRate = totalCalls > 0 ? (((totalCalls - missedCalls) / totalCalls) * 100).toFixed(1) : 0;
-  const resolutionRate = (resolved + pendingFollowUps) > 0 ? ((resolved / (resolved + pendingFollowUps)) * 100).toFixed(1) : 0;
+  // Get all unique executives from all reports
+  const allExecutives = new Set();
+  filteredReports.forEach(r => {
+    r.customer_support?.executive_data?.forEach(exec => {
+      if (exec.executive_name) allExecutives.add(exec.executive_name);
+    });
+  });
+
+  // Aggregate executive data
+  const executiveAggregates = Array.from(allExecutives).map(execName => {
+    const execData = {
+      name: execName,
+      appointments: 0,
+      followups: 0,
+      confirmed: 0,
+      warm: 0
+    };
+    
+    filteredReports.forEach(r => {
+      const exec = r.customer_support?.executive_data?.find(e => e.executive_name === execName);
+      if (exec) {
+        execData.appointments += exec.appointment_count || 0;
+        execData.followups += exec.followups || 0;
+        execData.confirmed += exec.confirmed_appointments || 0;
+        execData.warm += exec.warm_appointments || 0;
+      }
+    });
+    
+    return execData;
+  });
 
   // Trend data
   const trendData = [];
@@ -51,9 +77,9 @@ export default function CustomerSupport() {
     const dayReports = filteredReports.filter(r => r.report_date === dateStr);
     trendData.push({
       date: format(currentDate, "MMM d"),
-      calls: dayReports.reduce((sum, r) => sum + (r.customer_support?.incoming_calls || 0), 0),
-      missed: dayReports.reduce((sum, r) => sum + (r.customer_support?.missed_calls || 0), 0),
-      resolved: dayReports.reduce((sum, r) => sum + (r.customer_support?.resolved || 0), 0)
+      answered: dayReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0),
+      appointments: dayReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0),
+      outbound: dayReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0)
     });
     currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
   }
@@ -61,11 +87,9 @@ export default function CustomerSupport() {
   // Branch comparison
   const branchData = BRANCHES.map(branch => {
     const data = filteredReports.filter(r => r.branch === branch);
-    const calls = data.reduce((sum, r) => sum + (r.customer_support?.incoming_calls || 0), 0);
-    const missed = data.reduce((sum, r) => sum + (r.customer_support?.missed_calls || 0), 0);
     return {
       branch,
-      value: calls > 0 ? (((calls - missed) / calls) * 100).toFixed(0) : 0
+      value: data.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0)
     };
   });
 
@@ -73,12 +97,9 @@ export default function CustomerSupport() {
   const tableData = filteredReports.map(r => ({
     date: format(parseISO(r.report_date), "MMM d, yyyy"),
     branch: r.branch,
-    calls: r.customer_support?.incoming_calls || 0,
-    missed: r.customer_support?.missed_calls || 0,
-    followUps: r.customer_support?.follow_ups_done || 0,
-    pending: r.customer_support?.pending_follow_ups || 0,
-    resolved: r.customer_support?.resolved || 0,
-    unresolved: r.customer_support?.unresolved || 0
+    answered: r.customer_support?.total_answered_calls || 0,
+    appointments: r.customer_support?.total_appointments || 0,
+    outbound: r.customer_support?.total_outbound_calls || 0
   })).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
@@ -88,7 +109,7 @@ export default function CustomerSupport() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Customer Support</h1>
-            <p className="text-sm text-slate-500 mt-1">Calls, follow-ups & resolution tracking</p>
+            <p className="text-sm text-slate-500 mt-1">Call handling & appointment management</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
@@ -97,31 +118,68 @@ export default function CustomerSupport() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <KPICard title="Total Calls" value={totalCalls} icon={Phone} trend="up" change={5} />
-          <KPICard title="Missed Calls" value={missedCalls} icon={PhoneMissed} trend={missedCalls > totalCalls * 0.1 ? "down" : "up"} />
-          <KPICard title="Call Answer Rate" value={`${callAnswerRate}%`} icon={BarChart3} trend="up" />
-          <KPICard title="Follow-ups Done" value={followUpsDone} icon={CheckCircle} trend="up" change={10} />
-          <KPICard title="Pending" value={pendingFollowUps} icon={Clock} trend={pendingFollowUps > 10 ? "down" : "neutral"} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <KPICard title="Answered Calls" value={totalAnsweredCalls} icon={Phone} trend="up" change={5} />
+          <KPICard title="Total Appointments" value={totalAppointments} icon={Calendar} trend="up" change={10} />
+          <KPICard title="Outbound Calls" value={totalOutboundCalls} icon={PhoneOutgoing} trend="up" change={8} />
         </div>
+
+        {/* Executive Performance */}
+        {executiveAggregates.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-slate-800 mb-4">Executive Performance</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {executiveAggregates.map(exec => (
+                <Card key={exec.name} className="border-0 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Users className="w-4 h-4 text-slate-400" />
+                      {exec.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xl font-semibold text-slate-900">{exec.appointments}</p>
+                        <p className="text-xs text-slate-500">Appointments</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-slate-900">{exec.followups}</p>
+                        <p className="text-xs text-slate-500">Follow-ups</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-emerald-600">{exec.confirmed}</p>
+                        <p className="text-xs text-slate-500">Confirmed</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-orange-600">{exec.warm}</p>
+                        <p className="text-xs text-slate-500">Warm</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <TrendChart
-            title="Call Volume Trend"
+            title="Daily Activity Trend"
             data={trendData}
             lines={[
-              { dataKey: "calls", name: "Total Calls" },
-              { dataKey: "missed", name: "Missed Calls" },
-              { dataKey: "resolved", name: "Resolved" }
+              { dataKey: "answered", name: "Answered Calls" },
+              { dataKey: "appointments", name: "Appointments" },
+              { dataKey: "outbound", name: "Outbound Calls" }
             ]}
           />
           {selectedBranch === "All Branches" && (
             <BranchComparisonChart
-              title="Answer Rate by Branch (%)"
+              title="Answered Calls by Branch"
               data={branchData}
               dataKey="value"
-              metric="Answer Rate %"
+              metric="Calls"
             />
           )}
         </div>
@@ -133,15 +191,9 @@ export default function CustomerSupport() {
           columns={[
             { header: "Date", accessor: "date" },
             { header: "Branch", accessor: "branch" },
-            { header: "Incoming", accessor: "calls" },
-            { header: "Missed", accessor: "missed" },
-            { header: "Follow-ups", accessor: "followUps" },
-            { header: "Pending", accessor: "pending", render: (val) => (
-              <Badge variant="secondary" className={val > 5 ? "bg-amber-50 text-amber-700" : "bg-slate-100"}>
-                {val}
-              </Badge>
-            )},
-            { header: "Resolved", accessor: "resolved" }
+            { header: "Answered Calls", accessor: "answered" },
+            { header: "Appointments", accessor: "appointments" },
+            { header: "Outbound Calls", accessor: "outbound" }
           ]}
         />
       </div>

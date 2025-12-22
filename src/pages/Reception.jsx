@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp } from "lucide-react";
+import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp, QrCode } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import KPICard from "@/components/dashboard/KPICard";
@@ -39,6 +39,9 @@ export default function Reception() {
   const totalConversions = filteredReports.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0);
   const totalNoShows = filteredReports.reduce((sum, r) => sum + (r.reception?.no_shows || 0), 0);
   const totalCancellations = filteredReports.reduce((sum, r) => sum + (r.reception?.cancellations || 0), 0);
+  const totalYoutubeScans = filteredReports.reduce((sum, r) => sum + (r.reception?.youtube_qr_scans || 0), 0);
+  const totalInstagramScans = filteredReports.reduce((sum, r) => sum + (r.reception?.instagram_qr_scans || 0), 0);
+  const totalFacebookScans = filteredReports.reduce((sum, r) => sum + (r.reception?.facebook_qr_scans || 0), 0);
 
   const conversionRate = totalWalkIns > 0 ? ((totalConversions / totalWalkIns) * 100).toFixed(1) : 0;
   const noShowRate = totalAppointments > 0 ? ((totalNoShows / totalAppointments) * 100).toFixed(1) : 0;
@@ -75,7 +78,10 @@ export default function Reception() {
     appointments: r.reception?.appointments || 0,
     conversions: r.reception?.conversions || 0,
     noShows: r.reception?.no_shows || 0,
-    cancellations: r.reception?.cancellations || 0
+    cancellations: r.reception?.cancellations || 0,
+    youtubeScans: r.reception?.youtube_qr_scans || 0,
+    instagramScans: r.reception?.instagram_qr_scans || 0,
+    facebookScans: r.reception?.facebook_qr_scans || 0
   })).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
@@ -85,7 +91,7 @@ export default function Reception() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Reception</h1>
-            <p className="text-sm text-slate-500 mt-1">Walk-ins, appointments & conversions</p>
+            <p className="text-sm text-slate-500 mt-1">Walk-ins, appointments & QR scans</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
@@ -100,6 +106,43 @@ export default function Reception() {
           <KPICard title="Conversions" value={totalConversions} icon={UserCheck} trend="up" change={15} />
           <KPICard title="No-shows" value={totalNoShows} icon={UserX} trend={totalNoShows > 0 ? "down" : "up"} />
           <KPICard title="Conversion Rate" value={`${conversionRate}%`} icon={TrendingUp} trend="up" />
+        </div>
+
+        {/* QR Code Scans */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                <QrCode className="w-4 h-4 text-red-500" />
+                YouTube QR Scans
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-semibold text-slate-900">{totalYoutubeScans}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                <QrCode className="w-4 h-4 text-pink-500" />
+                Instagram QR Scans
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-semibold text-slate-900">{totalInstagramScans}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                <QrCode className="w-4 h-4 text-blue-500" />
+                Facebook QR Scans
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-semibold text-slate-900">{totalFacebookScans}</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Charts */}
@@ -134,7 +177,10 @@ export default function Reception() {
             { header: "Appointments", accessor: "appointments" },
             { header: "Conversions", accessor: "conversions" },
             { header: "No-shows", accessor: "noShows" },
-            { header: "Cancellations", accessor: "cancellations" }
+            { header: "Cancellations", accessor: "cancellations" },
+            { header: "YouTube", accessor: "youtubeScans" },
+            { header: "Instagram", accessor: "instagramScans" },
+            { header: "Facebook", accessor: "facebookScans" }
           ]}
         />
       </div>
