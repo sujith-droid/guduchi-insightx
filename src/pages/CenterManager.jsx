@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, DollarSign, TrendingUp, TrendingDown, Building2 } from "lucide-react";
+import { Users, DollarSign, TrendingUp, TrendingDown, Building2, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
@@ -20,6 +26,9 @@ export default function CenterManager() {
     to: new Date()
   });
   const [currentUser, setCurrentUser] = useState(null);
+  const [editDialog, setEditDialog] = useState(null);
+
+  const queryClient = useQueryClient();
 
   useState(() => {
     base44.auth.me().then(user => {
@@ -33,6 +42,18 @@ export default function CenterManager() {
   const { data: branchReports = [], isLoading } = useQuery({
     queryKey: ["branchReports"],
     queryFn: () => base44.entities.BranchReport.list("-report_date", 500)
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.BranchReport.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      setEditDialog(null);
+      toast.success("Report updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update report");
+    }
   });
 
   const filteredReports = branchReports.filter(report => {
@@ -86,6 +107,8 @@ export default function CenterManager() {
       : 0;
     
     return {
+      id: r.id,
+      report: r,
       date: format(parseISO(r.report_date), "MMM d, yyyy"),
       branch: r.branch,
       patients: r.center_manager?.number_of_patients || 0,
@@ -219,9 +242,115 @@ export default function CenterManager() {
                 {val}%
               </span>
             )},
-            { header: "Days", accessor: "trackingDays" }
+            { header: "Days", accessor: "trackingDays" },
+            { 
+              header: "Action", 
+              accessor: "id", 
+              render: (_, row) => (
+                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                  <Edit className="w-4 h-4" />
+                </Button>
+              )
+            }
           ]}
         />
+
+        {/* Edit Dialog */}
+        {editDialog && (
+          <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Center Manager Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Number of Patients</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.center_manager?.number_of_patients || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        center_manager: { ...editDialog.center_manager, number_of_patients: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Projected Patients</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.center_manager?.projected_patients || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        center_manager: { ...editDialog.center_manager, projected_patients: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Revenue</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.center_manager?.revenue || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        center_manager: { ...editDialog.center_manager, revenue: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Projected Revenue</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.center_manager?.projected_revenue || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        center_manager: { ...editDialog.center_manager, projected_revenue: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Tracking Days</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={editDialog.center_manager?.tracking_days || 30}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        center_manager: { ...editDialog.center_manager, tracking_days: parseInt(e.target.value) || 30 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Operational Notes</Label>
+                    <Textarea
+                      value={editDialog.center_manager?.operational_notes || ""}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        center_manager: { ...editDialog.center_manager, operational_notes: e.target.value }
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setEditDialog(null)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => updateMutation.mutate({ id: editDialog.id, data: editDialog })}
+                    disabled={updateMutation.isPending}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {updateMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );

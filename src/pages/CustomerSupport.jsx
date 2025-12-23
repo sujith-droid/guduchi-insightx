@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Phone, PhoneOutgoing, Calendar, Users, CheckCircle, Flame } from "lucide-react";
+import { Phone, PhoneOutgoing, Calendar, Users, CheckCircle, Flame, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
@@ -21,6 +26,9 @@ export default function CustomerSupport() {
     to: new Date()
   });
   const [currentUser, setCurrentUser] = useState(null);
+  const [editDialog, setEditDialog] = useState(null);
+
+  const queryClient = useQueryClient();
 
   useState(() => {
     base44.auth.me().then(user => {
@@ -34,6 +42,18 @@ export default function CustomerSupport() {
   const { data: branchReports = [], isLoading } = useQuery({
     queryKey: ["branchReports"],
     queryFn: () => base44.entities.BranchReport.list("-report_date", 500)
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.BranchReport.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      setEditDialog(null);
+      toast.success("Report updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update report");
+    }
   });
 
   const filteredReports = branchReports.filter(report => {
@@ -105,6 +125,8 @@ export default function CustomerSupport() {
 
   // Table data
   const tableData = filteredReports.map(r => ({
+    id: r.id,
+    report: r,
     date: format(parseISO(r.report_date), "MMM d, yyyy"),
     branch: r.branch,
     answered: r.customer_support?.total_answered_calls || 0,
@@ -209,9 +231,81 @@ export default function CustomerSupport() {
             { header: "Branch", accessor: "branch" },
             { header: "Answered Calls", accessor: "answered" },
             { header: "Appointments", accessor: "appointments" },
-            { header: "Outbound Calls", accessor: "outbound" }
+            { header: "Outbound Calls", accessor: "outbound" },
+            { 
+              header: "Action", 
+              accessor: "id", 
+              render: (_, row) => (
+                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                  <Edit className="w-4 h-4" />
+                </Button>
+              )
+            }
           ]}
         />
+
+        {/* Edit Dialog */}
+        {editDialog && (
+          <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit Customer Support Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Total Answered Calls</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.customer_support?.total_answered_calls || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        customer_support: { ...editDialog.customer_support, total_answered_calls: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Total Appointments</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.customer_support?.total_appointments || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        customer_support: { ...editDialog.customer_support, total_appointments: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Total Outbound Calls</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.customer_support?.total_outbound_calls || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        customer_support: { ...editDialog.customer_support, total_outbound_calls: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setEditDialog(null)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => updateMutation.mutate({ id: editDialog.id, data: editDialog })}
+                    disabled={updateMutation.isPending}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {updateMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );

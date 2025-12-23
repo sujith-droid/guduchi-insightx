@@ -74,6 +74,20 @@ export default function Marketing() {
     }
   });
 
+  const [editDialog, setEditDialog] = useState(null);
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.MarketingReport.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketingReports"] });
+      setEditDialog(null);
+      toast.success("Report updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update report");
+    }
+  });
+
   const handleSubmitReport = () => {
     createReportMutation.mutate(newReport);
   };

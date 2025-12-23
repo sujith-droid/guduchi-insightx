@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp, QrCode } from "lucide-react";
+import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp, QrCode, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
@@ -21,6 +26,9 @@ export default function Reception() {
     to: new Date()
   });
   const [currentUser, setCurrentUser] = useState(null);
+  const [editDialog, setEditDialog] = useState(null);
+
+  const queryClient = useQueryClient();
 
   useState(() => {
     base44.auth.me().then(user => {
@@ -34,6 +42,18 @@ export default function Reception() {
   const { data: branchReports = [], isLoading } = useQuery({
     queryKey: ["branchReports"],
     queryFn: () => base44.entities.BranchReport.list("-report_date", 500)
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.BranchReport.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      setEditDialog(null);
+      toast.success("Report updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update report");
+    }
   });
 
   const filteredReports = branchReports.filter(report => {
@@ -82,6 +102,8 @@ export default function Reception() {
 
   // Table data
   const tableData = filteredReports.map(r => ({
+    id: r.id,
+    report: r,
     date: format(parseISO(r.report_date), "MMM d, yyyy"),
     branch: r.branch,
     walkIns: r.reception?.walk_ins || 0,
@@ -196,9 +218,141 @@ export default function Reception() {
             { header: "Cancellations", accessor: "cancellations" },
             { header: "YouTube", accessor: "youtubeScans" },
             { header: "Instagram", accessor: "instagramScans" },
-            { header: "Facebook", accessor: "facebookScans" }
+            { header: "Facebook", accessor: "facebookScans" },
+            { 
+              header: "Action", 
+              accessor: "id", 
+              render: (_, row) => (
+                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                  <Edit className="w-4 h-4" />
+                </Button>
+              )
+            }
           ]}
         />
+
+        {/* Edit Dialog */}
+        {editDialog && (
+          <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Reception Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Walk-ins</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.walk_ins || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, walk_ins: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Appointments</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.appointments || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, appointments: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Conversions</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.conversions || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, conversions: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>No-shows</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.no_shows || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, no_shows: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cancellations</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.cancellations || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, cancellations: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>YouTube QR</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.youtube_qr_scans || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, youtube_qr_scans: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instagram QR</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.instagram_qr_scans || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, instagram_qr_scans: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Facebook QR</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.facebook_qr_scans || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, facebook_qr_scans: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setEditDialog(null)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => updateMutation.mutate({ id: editDialog.id, data: editDialog })}
+                    disabled={updateMutation.isPending}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {updateMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
