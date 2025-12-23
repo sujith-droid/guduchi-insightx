@@ -33,7 +33,7 @@ export default function CenterManager() {
   useState(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
-      if (user.department !== "Analyst" && user.branch) {
+      if (user.department !== "Analyst" && user.department !== "CEO" && user.branch) {
         setSelectedBranch(user.branch);
       }
     }).catch(() => {});
