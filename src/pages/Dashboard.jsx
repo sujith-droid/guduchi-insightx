@@ -155,7 +155,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <KPICard
             title="Total Walk-ins"
             value={totalWalkIns.toLocaleString()}
@@ -176,13 +176,6 @@ export default function Dashboard() {
             icon={DollarSign}
             trend="up"
             change={18}
-          />
-          <KPICard
-            title="Cost per Lead"
-            value={`₹${costPerLead}`}
-            icon={TrendingUp}
-            trend={parseFloat(costPerLead) < 100 ? "up" : "down"}
-            subtitle={`${totalLeads} leads generated`}
           />
         </div>
 
@@ -218,59 +211,6 @@ export default function Dashboard() {
             />
           </div>
         )}
-
-        {/* Department Cards */}
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Department Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <DepartmentCard
-            title="Reception"
-            icon={Users}
-            color="indigo"
-            status={receptionData.noShows < receptionData.walkIns * 0.1 ? "good" : "warning"}
-            metrics={[
-              { label: "Walk-ins", value: receptionData.walkIns },
-              { label: "Appointments", value: receptionData.appointments },
-              { label: "No-shows", value: receptionData.noShows },
-              { label: "Cancellations", value: receptionData.cancellations }
-            ]}
-          />
-          <DepartmentCard
-            title="Customer Support"
-            icon={Phone}
-            color="emerald"
-            status={supportData.missed < supportData.calls * 0.15 ? "good" : "warning"}
-            metrics={[
-              { label: "Total Calls", value: supportData.calls },
-              { label: "Missed Calls", value: supportData.missed },
-              { label: "Resolved", value: supportData.resolved },
-              { label: "Pending", value: supportData.pending }
-            ]}
-          />
-          <DepartmentCard
-            title="Pharmacy"
-            icon={Package}
-            color="amber"
-            status={pharmacyData.alerts === 0 ? "good" : pharmacyData.alerts < 5 ? "warning" : "critical"}
-            metrics={[
-              { label: "Orders", value: pharmacyData.orders },
-              { label: "Revenue", value: `₹${(pharmacyData.revenue / 1000).toFixed(1)}K` },
-              { label: "Pending", value: pharmacyData.pending },
-              { label: "Stock Alerts", value: pharmacyData.alerts }
-            ]}
-          />
-          <DepartmentCard
-            title="Operations"
-            icon={ClipboardList}
-            color="violet"
-            status="good"
-            metrics={[
-              { label: "Staff Present", value: filteredBranchReports.reduce((sum, r) => sum + (r.center_manager?.staff_present || 0), 0) },
-              { label: "Total Staff", value: filteredBranchReports.reduce((sum, r) => sum + (r.center_manager?.staff_total || 0), 0) },
-              { label: "Issues Raised", value: filteredBranchReports.reduce((sum, r) => sum + (r.center_manager?.issues_raised || 0), 0) },
-              { label: "Issues Resolved", value: filteredBranchReports.reduce((sum, r) => sum + (r.center_manager?.issues_resolved || 0), 0) }
-            ]}
-          />
-        </div>
       </div>
     </div>
   );
