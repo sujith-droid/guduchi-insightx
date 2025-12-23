@@ -153,10 +153,12 @@ export default function Marketing() {
             <p className="text-sm text-slate-500 mt-1">Daily lead tracking</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => setShowAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Report
-            </Button>
+            {currentUser?.department === "Digital Marketing" && (
+              <Button onClick={() => setShowAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Report
+              </Button>
+            )}
             {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
