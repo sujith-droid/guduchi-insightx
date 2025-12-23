@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Target, TrendingUp, Phone } from "lucide-react";
+import { Target, TrendingUp, Phone, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
@@ -20,6 +27,17 @@ export default function Marketing() {
     to: new Date()
   });
   const [currentUser, setCurrentUser] = useState(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newReport, setNewReport] = useState({
+    report_date: format(new Date(), "yyyy-MM-dd"),
+    branch: "Bangalore",
+    call_leads: 0,
+    whatsapp_leads: 0,
+    instant_form_leads: 0,
+    notes: ""
+  });
+
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     base44.auth.me().then(user => {
@@ -35,6 +53,30 @@ export default function Marketing() {
     queryKey: ["marketingReports"],
     queryFn: () => base44.entities.MarketingReport.list("-report_date", 500)
   });
+
+  const createReportMutation = useMutation({
+    mutationFn: (data) => base44.entities.MarketingReport.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketingReports"] });
+      setShowAddDialog(false);
+      setNewReport({
+        report_date: format(new Date(), "yyyy-MM-dd"),
+        branch: "Bangalore",
+        call_leads: 0,
+        whatsapp_leads: 0,
+        instant_form_leads: 0,
+        notes: ""
+      });
+      toast.success("Marketing report added successfully");
+    },
+    onError: () => {
+      toast.error("Failed to add report");
+    }
+  });
+
+  const handleSubmitReport = () => {
+    createReportMutation.mutate(newReport);
+  };
 
   const filteredReports = marketingReports.filter(report => {
     const reportDate = parseISO(report.report_date);
@@ -84,6 +126,10 @@ export default function Marketing() {
             <p className="text-sm text-slate-500 mt-1">Daily lead tracking</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setShowAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Report
+            </Button>
             {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
@@ -154,6 +200,85 @@ export default function Marketing() {
             }
           ]}
         />
+
+        {/* Add Report Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Marketing Report</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={newReport.report_date}
+                  onChange={(e) => setNewReport({ ...newReport, report_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Branch</Label>
+                <Select value={newReport.branch} onValueChange={(val) => setNewReport({ ...newReport, branch: val })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BRANCHES.map(branch => (
+                      <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Call Leads</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newReport.call_leads}
+                  onChange={(e) => setNewReport({ ...newReport, call_leads: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>WhatsApp Leads</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newReport.whatsapp_leads}
+                  onChange={(e) => setNewReport({ ...newReport, whatsapp_leads: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Instant Form Leads</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newReport.instant_form_leads}
+                  onChange={(e) => setNewReport({ ...newReport, instant_form_leads: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Textarea
+                  value={newReport.notes}
+                  onChange={(e) => setNewReport({ ...newReport, notes: e.target.value })}
+                  placeholder="Add any notes or observations..."
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" onClick={() => setShowAddDialog(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSubmitReport} 
+                  disabled={createReportMutation.isPending}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {createReportMutation.isPending ? "Adding..." : "Add Report"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
