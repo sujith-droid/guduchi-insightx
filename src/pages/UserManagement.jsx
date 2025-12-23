@@ -89,8 +89,18 @@ BranchIQ Team`
   };
 
   const handleSaveUser = () => {
-    if (!editingUser.branch || !editingUser.department) {
-      toast.error("Please select both branch and department");
+    if (!editingUser.department) {
+      toast.error("Please select a department");
+      return;
+    }
+
+    // Digital Marketing gets all branches
+    const branchToSave = editingUser.department === "Digital Marketing" 
+      ? "All Branches" 
+      : editingUser.branch;
+
+    if (!branchToSave && editingUser.department !== "Digital Marketing") {
+      toast.error("Please select a branch");
       return;
     }
 
@@ -98,7 +108,7 @@ BranchIQ Team`
       userId: editingUser.id,
       userEmail: editingUser.email,
       userData: {
-        branch: editingUser.branch,
+        branch: branchToSave,
         department: editingUser.department
       }
     });
@@ -205,24 +215,33 @@ BranchIQ Team`
 
                 <div className="space-y-2">
                   <Label>Branch</Label>
-                  <Select 
-                    value={editingUser.branch} 
-                    onValueChange={(v) => setEditingUser({ ...editingUser, branch: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BRANCHES.map(b => (
-                        <SelectItem key={b} value={b}>
-                          <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-slate-400" />
-                            {b}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {editingUser.department === "Digital Marketing" ? (
+                    <div>
+                      <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-md text-sm text-indigo-700 font-medium">
+                        All Branches (Digital Marketing has access to all)
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">Digital Marketing users automatically get access to all branches</p>
+                    </div>
+                  ) : (
+                    <Select 
+                      value={editingUser.branch} 
+                      onValueChange={(v) => setEditingUser({ ...editingUser, branch: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select branch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BRANCHES.map(b => (
+                          <SelectItem key={b} value={b}>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-slate-400" />
+                              {b}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-2">

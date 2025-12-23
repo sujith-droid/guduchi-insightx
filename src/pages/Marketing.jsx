@@ -24,7 +24,8 @@ export default function Marketing() {
   useState(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
-      if (user.department !== "Analyst" && user.branch) {
+      // Digital Marketing and Analyst can see all branches
+      if (user.department !== "Analyst" && user.department !== "Digital Marketing" && user.branch) {
         setSelectedBranch(user.branch);
       }
     }).catch(() => {});
@@ -43,7 +44,10 @@ export default function Marketing() {
   });
 
   // KPIs
-  const totalLeads = filteredReports.reduce((sum, r) => sum + (r.total_leads || 0), 0);
+  const totalCallLeads = filteredReports.reduce((sum, r) => sum + (r.call_leads || 0), 0);
+  const totalWhatsappLeads = filteredReports.reduce((sum, r) => sum + (r.whatsapp_leads || 0), 0);
+  const totalInstantFormLeads = filteredReports.reduce((sum, r) => sum + (r.instant_form_leads || 0), 0);
+  const totalLeads = totalCallLeads + totalWhatsappLeads + totalInstantFormLeads;
   const avgLeadsPerDay = filteredReports.length > 0 ? (totalLeads / filteredReports.length).toFixed(1) : 0;
 
   // Trend data
@@ -54,7 +58,9 @@ export default function Marketing() {
     const dayReports = filteredReports.filter(r => r.report_date === dateStr);
     trendData.push({
       date: format(currentDate, "MMM d"),
-      leads: dayReports.reduce((sum, r) => sum + (r.total_leads || 0), 0)
+      callLeads: dayReports.reduce((sum, r) => sum + (r.call_leads || 0), 0),
+      whatsappLeads: dayReports.reduce((sum, r) => sum + (r.whatsapp_leads || 0), 0),
+      instantFormLeads: dayReports.reduce((sum, r) => sum + (r.instant_form_leads || 0), 0)
     });
     currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
   }
@@ -64,7 +70,7 @@ export default function Marketing() {
     const data = filteredReports.filter(r => r.branch === branch);
     return {
       branch,
-      value: data.reduce((sum, r) => sum + (r.total_leads || 0), 0)
+      value: data.reduce((sum, r) => sum + (r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0), 0)
     };
   });
 
@@ -78,7 +84,7 @@ export default function Marketing() {
             <p className="text-sm text-slate-500 mt-1">Daily lead tracking</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {currentUser?.department === "Analyst" ? (
+            {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
               <div className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700">
@@ -90,18 +96,22 @@ export default function Marketing() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <KPICard title="Total Leads" value={totalLeads} icon={Target} trend="up" change={15} />
-          <KPICard title="Avg Leads/Day" value={avgLeadsPerDay} icon={TrendingUp} trend="up" />
+          <KPICard title="Call Leads" value={totalCallLeads} icon={Phone} trend="up" />
+          <KPICard title="WhatsApp Leads" value={totalWhatsappLeads} icon={Target} trend="up" />
+          <KPICard title="Form Leads" value={totalInstantFormLeads} icon={Target} trend="up" />
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <TrendChart
-            title="Daily Lead Generation"
+            title="Daily Lead Generation by Source"
             data={trendData}
             lines={[
-              { dataKey: "leads", name: "Leads" }
+              { dataKey: "callLeads", name: "Call Leads" },
+              { dataKey: "whatsappLeads", name: "WhatsApp Leads" },
+              { dataKey: "instantFormLeads", name: "Form Leads" }
             ]}
           />
           {selectedBranch === "All Branches" && (
@@ -118,14 +128,30 @@ export default function Marketing() {
         <ReportTable
           title="Daily Reports"
           data={filteredReports.map(r => ({
-            date: format(parseISO(r.report_date), "MMM d"),
+            date: format(parseISO(r.report_date), "MMM d, yyyy"),
             branch: r.branch,
-            leads: r.total_leads || 0
+            callLeads: r.call_leads || 0,
+            whatsappLeads: r.whatsapp_leads || 0,
+            formLeads: r.instant_form_leads || 0,
+            totalLeads: (r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0),
+            notes: r.notes || ""
           })).sort((a, b) => new Date(b.date) - new Date(a.date))}
           columns={[
             { header: "Date", accessor: "date" },
             { header: "Branch", accessor: "branch" },
-            { header: "Total Leads", accessor: "leads" }
+            { header: "Call Leads", accessor: "callLeads" },
+            { header: "WhatsApp Leads", accessor: "whatsappLeads" },
+            { header: "Form Leads", accessor: "formLeads" },
+            { header: "Total Leads", accessor: "totalLeads" },
+            { 
+              header: "Notes", 
+              accessor: "notes",
+              render: (val) => val ? (
+                <span className="text-sm text-slate-600 truncate max-w-xs block" title={val}>
+                  {val.substring(0, 50)}{val.length > 50 ? "..." : ""}
+                </span>
+              ) : "-"
+            }
           ]}
         />
       </div>
