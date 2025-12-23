@@ -155,6 +155,31 @@ export default function CustomerSupport() {
           </div>
         </div>
 
+        {/* Quick Branch Filters for Analyst */}
+        {currentUser?.department === "Analyst" && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Button
+              variant={selectedBranch === "All Branches" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedBranch("All Branches")}
+              className={selectedBranch === "All Branches" ? "bg-indigo-600" : ""}
+            >
+              All Branches
+            </Button>
+            {BRANCHES.map(branch => (
+              <Button
+                key={branch}
+                variant={selectedBranch === branch ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedBranch(branch)}
+                className={selectedBranch === branch ? "bg-indigo-600" : ""}
+              >
+                {branch}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <KPICard title="Answered Calls" value={totalAnsweredCalls} icon={Phone} trend="up" change={5} />
