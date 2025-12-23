@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Target, TrendingUp, Phone, Plus } from "lucide-react";
+import { Target, TrendingUp, Phone, Plus, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -130,6 +130,19 @@ export default function Marketing() {
     };
   });
 
+  // Table data
+  const tableData = filteredReports.map(r => ({
+    id: r.id,
+    report: r,
+    date: format(parseISO(r.report_date), "MMM d, yyyy"),
+    branch: r.branch,
+    call: r.call_leads || 0,
+    whatsapp: r.whatsapp_leads || 0,
+    instant: r.instant_form_leads || 0,
+    total: (r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0),
+    notes: r.notes || ""
+  })).sort((a, b) => new Date(b.date) - new Date(a.date));
+
   return (
     <div className="min-h-screen bg-slate-50/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -186,34 +199,100 @@ export default function Marketing() {
 
         {/* Reports Table */}
         <ReportTable
-          title="Daily Reports"
-          data={filteredReports.map(r => ({
-            date: format(parseISO(r.report_date), "MMM d, yyyy"),
-            branch: r.branch,
-            callLeads: r.call_leads || 0,
-            whatsappLeads: r.whatsapp_leads || 0,
-            formLeads: r.instant_form_leads || 0,
-            totalLeads: (r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0),
-            notes: r.notes || ""
-          })).sort((a, b) => new Date(b.date) - new Date(a.date))}
+          title="Daily Lead Reports"
+          data={tableData}
           columns={[
             { header: "Date", accessor: "date" },
             { header: "Branch", accessor: "branch" },
-            { header: "Call Leads", accessor: "callLeads" },
-            { header: "WhatsApp Leads", accessor: "whatsappLeads" },
-            { header: "Form Leads", accessor: "formLeads" },
-            { header: "Total Leads", accessor: "totalLeads" },
+            { header: "Call Leads", accessor: "call" },
+            { header: "WhatsApp Leads", accessor: "whatsapp" },
+            { header: "Instant Forms", accessor: "instant" },
+            { header: "Total Leads", accessor: "total" },
             { 
               header: "Notes", 
               accessor: "notes",
-              render: (val) => val ? (
-                <span className="text-sm text-slate-600 truncate max-w-xs block" title={val}>
-                  {val.substring(0, 50)}{val.length > 50 ? "..." : ""}
-                </span>
-              ) : "-"
+              render: (val) => val ? <span className="text-sm text-slate-600 truncate max-w-xs block">{val.substring(0, 30)}...</span> : "-"
+            },
+            { 
+              header: "Action", 
+              accessor: "id", 
+              render: (_, row) => (
+                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                  <Edit className="w-4 h-4" />
+                </Button>
+              )
             }
           ]}
         />
+
+        {/* Edit Dialog */}
+        {editDialog && (
+          <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit Marketing Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={editDialog.report_date}
+                      onChange={(e) => setEditDialog({ ...editDialog, report_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Call Leads</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.call_leads || 0}
+                      onChange={(e) => setEditDialog({ ...editDialog, call_leads: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>WhatsApp Leads</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.whatsapp_leads || 0}
+                      onChange={(e) => setEditDialog({ ...editDialog, whatsapp_leads: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Instant Form Leads</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.instant_form_leads || 0}
+                      onChange={(e) => setEditDialog({ ...editDialog, instant_form_leads: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Notes (Optional)</Label>
+                    <Textarea
+                      value={editDialog.notes || ""}
+                      onChange={(e) => setEditDialog({ ...editDialog, notes: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setEditDialog(null)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => updateMutation.mutate({ id: editDialog.id, data: editDialog })}
+                    disabled={updateMutation.isPending}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {updateMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Add Report Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
