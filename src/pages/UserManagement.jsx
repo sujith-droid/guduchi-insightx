@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
-const DEPARTMENTS = ["Analyst", "Reception", "Customer Support", "Pharmacy", "Marketing", "Center Manager"];
+const DEPARTMENTS = ["Analyst", "Reception", "Customer Support", "Pharmacy", "Digital Marketing", "Center Manager"];
 
 export default function UserManagement() {
   const [currentUser, setCurrentUser] = useState(null);

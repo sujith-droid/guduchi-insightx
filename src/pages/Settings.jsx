@@ -108,25 +108,17 @@ export default function Settings() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Branch</Label>
-                    <Select value={userSettings.branch} onValueChange={(v) => setUserSettings({ ...userSettings, branch: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select branch" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <div className="px-3 py-2 bg-slate-100 rounded-md text-sm text-slate-700 border border-slate-200">
+                      {currentUser?.branch || "Not assigned"}
+                    </div>
+                    <p className="text-xs text-slate-500">Contact administrator to change branch</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Department</Label>
-                    <Select value={userSettings.department} onValueChange={(v) => setUserSettings({ ...userSettings, department: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <div className="px-3 py-2 bg-slate-100 rounded-md text-sm text-slate-700 border border-slate-200">
+                      {currentUser?.department || "Not assigned"}
+                    </div>
+                    <p className="text-xs text-slate-500">Contact administrator to change department</p>
                   </div>
                 </div>
 
