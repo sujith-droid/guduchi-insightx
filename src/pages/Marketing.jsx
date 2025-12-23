@@ -159,7 +159,7 @@ export default function Marketing() {
                 Add Report
               </Button>
             )}
-            {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" ? (
+            {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
               <div className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700">
@@ -170,8 +170,8 @@ export default function Marketing() {
           </div>
         </div>
 
-        {/* Quick Branch Filters for Analyst & Digital Marketing */}
-        {(currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing") && (
+        {/* Quick Branch Filters for Analyst, Digital Marketing & CEO */}
+        {(currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO") && (
           <div className="flex flex-wrap gap-2 mb-6">
             <Button
               variant={selectedBranch === "All Branches" ? "default" : "outline"}
