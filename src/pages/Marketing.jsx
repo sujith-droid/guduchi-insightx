@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
@@ -21,7 +21,7 @@ export default function Marketing() {
   });
   const [currentUser, setCurrentUser] = useState(null);
 
-  useState(() => {
+  useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
       // Digital Marketing and Analyst can see all branches
