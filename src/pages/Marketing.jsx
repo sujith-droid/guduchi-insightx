@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Target, TrendingUp } from "lucide-react";
+import { Target, TrendingUp, Phone } from "lucide-react";
 
 import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
