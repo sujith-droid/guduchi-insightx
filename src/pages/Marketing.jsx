@@ -88,6 +88,17 @@ export default function Marketing() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.MarketingReport.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketingReports"] });
+      toast.success("Report deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete report");
+    }
+  });
+
   const handleSubmitReport = () => {
     createReportMutation.mutate(newReport);
   };

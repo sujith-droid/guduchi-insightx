@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { DollarSign, CreditCard, TrendingDown, Star, FileText, Edit } from "lucide-react";
+import { DollarSign, CreditCard, TrendingDown, Star, FileText, Edit, Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,18 @@ export default function Pharmacy() {
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [editDialog, setEditDialog] = useState(null);
+  const [addDialog, setAddDialog] = useState(false);
+  const [newReport, setNewReport] = useState({
+    report_date: format(new Date(), "yyyy-MM-dd"),
+    branch: "",
+    pharmacy: {
+      cash: 0,
+      paytm_swipe: 0,
+      expenses: 0,
+      reasons_not_buying: "",
+      google_reviews: 0
+    }
+  });
 
   const queryClient = useQueryClient();
 
@@ -44,6 +56,29 @@ export default function Pharmacy() {
     queryFn: () => base44.entities.BranchReport.list("-report_date", 500)
   });
 
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.BranchReport.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      setAddDialog(false);
+      setNewReport({
+        report_date: format(new Date(), "yyyy-MM-dd"),
+        branch: "",
+        pharmacy: {
+          cash: 0,
+          paytm_swipe: 0,
+          expenses: 0,
+          reasons_not_buying: "",
+          google_reviews: 0
+        }
+      });
+      toast.success("Report added successfully");
+    },
+    onError: () => {
+      toast.error("Failed to add report");
+    }
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.BranchReport.update(id, data),
     onSuccess: () => {
@@ -53,6 +88,17 @@ export default function Pharmacy() {
     },
     onError: () => {
       toast.error("Failed to update report");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.BranchReport.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      toast.success("Report deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete report");
     }
   });
 
@@ -134,6 +180,10 @@ export default function Pharmacy() {
             <p className="text-sm text-slate-500 mt-1">Sales, expenses & customer feedback</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Report
+            </Button>
             {currentUser?.department === "Analyst" || currentUser?.department === "CEO" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
@@ -242,13 +292,126 @@ export default function Pharmacy() {
               header: "Action", 
               accessor: "id", 
               render: (_, row) => (
-                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
-                  <Edit className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    if (confirm("Are you sure you want to delete this report?")) {
+                      deleteMutation.mutate(row.id);
+                    }
+                  }}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
               )
             }
           ]}
         />
+
+        {/* Add Dialog */}
+        {addDialog && (
+          <Dialog open={addDialog} onOpenChange={setAddDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add Pharmacy Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={newReport.report_date}
+                      onChange={(e) => setNewReport({ ...newReport, report_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Branch</Label>
+                    <select
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md"
+                      value={newReport.branch}
+                      onChange={(e) => setNewReport({ ...newReport, branch: e.target.value })}
+                    >
+                      <option value="">Select Branch</option>
+                      {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cash</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.pharmacy.cash}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        pharmacy: { ...newReport.pharmacy, cash: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Paytm/Swipe</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.pharmacy.paytm_swipe}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        pharmacy: { ...newReport.pharmacy, paytm_swipe: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Expenses</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.pharmacy.expenses}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        pharmacy: { ...newReport.pharmacy, expenses: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Google Reviews</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.pharmacy.google_reviews}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        pharmacy: { ...newReport.pharmacy, google_reviews: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Reasons Not Buying</Label>
+                    <Textarea
+                      value={newReport.pharmacy.reasons_not_buying}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        pharmacy: { ...newReport.pharmacy, reasons_not_buying: e.target.value }
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setAddDialog(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => createMutation.mutate(newReport)}
+                    disabled={createMutation.isPending || !newReport.branch}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {createMutation.isPending ? "Adding..." : "Add Report"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Edit Dialog */}
         {editDialog && (

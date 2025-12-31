@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, DollarSign, TrendingUp, TrendingDown, Building2, Edit } from "lucide-react";
+import { Users, DollarSign, TrendingUp, TrendingDown, Building2, Edit, Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,19 @@ export default function CenterManager() {
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [editDialog, setEditDialog] = useState(null);
+  const [addDialog, setAddDialog] = useState(false);
+  const [newReport, setNewReport] = useState({
+    report_date: format(new Date(), "yyyy-MM-dd"),
+    branch: "",
+    center_manager: {
+      number_of_patients: 0,
+      revenue: 0,
+      projected_patients: 0,
+      projected_revenue: 0,
+      tracking_days: 30,
+      operational_notes: ""
+    }
+  });
 
   const queryClient = useQueryClient();
 
@@ -44,6 +57,30 @@ export default function CenterManager() {
     queryFn: () => base44.entities.BranchReport.list("-report_date", 500)
   });
 
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.BranchReport.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      setAddDialog(false);
+      setNewReport({
+        report_date: format(new Date(), "yyyy-MM-dd"),
+        branch: "",
+        center_manager: {
+          number_of_patients: 0,
+          revenue: 0,
+          projected_patients: 0,
+          projected_revenue: 0,
+          tracking_days: 30,
+          operational_notes: ""
+        }
+      });
+      toast.success("Report added successfully");
+    },
+    onError: () => {
+      toast.error("Failed to add report");
+    }
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.BranchReport.update(id, data),
     onSuccess: () => {
@@ -53,6 +90,17 @@ export default function CenterManager() {
     },
     onError: () => {
       toast.error("Failed to update report");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.BranchReport.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      toast.success("Report deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete report");
     }
   });
 
@@ -132,6 +180,10 @@ export default function CenterManager() {
             <p className="text-sm text-slate-500 mt-1">Patient count, revenue & performance tracking</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Report
+            </Button>
             {currentUser?.department === "Analyst" || currentUser?.department === "CEO" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
@@ -272,13 +324,138 @@ export default function CenterManager() {
               header: "Action", 
               accessor: "id", 
               render: (_, row) => (
-                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
-                  <Edit className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    if (confirm("Are you sure you want to delete this report?")) {
+                      deleteMutation.mutate(row.id);
+                    }
+                  }}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
               )
             }
           ]}
         />
+
+        {/* Add Dialog */}
+        {addDialog && (
+          <Dialog open={addDialog} onOpenChange={setAddDialog}>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add Center Manager Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={newReport.report_date}
+                      onChange={(e) => setNewReport({ ...newReport, report_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Branch</Label>
+                    <select
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md"
+                      value={newReport.branch}
+                      onChange={(e) => setNewReport({ ...newReport, branch: e.target.value })}
+                    >
+                      <option value="">Select Branch</option>
+                      {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Number of Patients</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.center_manager.number_of_patients}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        center_manager: { ...newReport.center_manager, number_of_patients: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Projected Patients</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.center_manager.projected_patients}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        center_manager: { ...newReport.center_manager, projected_patients: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Revenue</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.center_manager.revenue}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        center_manager: { ...newReport.center_manager, revenue: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Projected Revenue</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.center_manager.projected_revenue}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        center_manager: { ...newReport.center_manager, projected_revenue: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Tracking Days</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={newReport.center_manager.tracking_days}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        center_manager: { ...newReport.center_manager, tracking_days: parseInt(e.target.value) || 30 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Operational Notes</Label>
+                    <Textarea
+                      value={newReport.center_manager.operational_notes}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        center_manager: { ...newReport.center_manager, operational_notes: e.target.value }
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setAddDialog(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => createMutation.mutate(newReport)}
+                    disabled={createMutation.isPending || !newReport.branch}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {createMutation.isPending ? "Adding..." : "Add Report"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Edit Dialog */}
         {editDialog && (

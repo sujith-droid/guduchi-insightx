@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp, QrCode, Edit } from "lucide-react";
+import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp, QrCode, Edit, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,21 @@ export default function Reception() {
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [editDialog, setEditDialog] = useState(null);
+  const [addDialog, setAddDialog] = useState(false);
+  const [newReport, setNewReport] = useState({
+    report_date: format(new Date(), "yyyy-MM-dd"),
+    branch: "",
+    reception: {
+      walk_ins: 0,
+      appointments: 0,
+      conversions: 0,
+      no_shows: 0,
+      cancellations: 0,
+      youtube_qr_scans: 0,
+      instagram_qr_scans: 0,
+      facebook_qr_scans: 0
+    }
+  });
 
   const queryClient = useQueryClient();
 
@@ -44,6 +59,32 @@ export default function Reception() {
     queryFn: () => base44.entities.BranchReport.list("-report_date", 500)
   });
 
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.BranchReport.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      setAddDialog(false);
+      setNewReport({
+        report_date: format(new Date(), "yyyy-MM-dd"),
+        branch: "",
+        reception: {
+          walk_ins: 0,
+          appointments: 0,
+          conversions: 0,
+          no_shows: 0,
+          cancellations: 0,
+          youtube_qr_scans: 0,
+          instagram_qr_scans: 0,
+          facebook_qr_scans: 0
+        }
+      });
+      toast.success("Report added successfully");
+    },
+    onError: () => {
+      toast.error("Failed to add report");
+    }
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.BranchReport.update(id, data),
     onSuccess: () => {
@@ -53,6 +94,17 @@ export default function Reception() {
     },
     onError: () => {
       toast.error("Failed to update report");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.BranchReport.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["branchReports"] });
+      toast.success("Report deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete report");
     }
   });
 
@@ -126,6 +178,10 @@ export default function Reception() {
             <p className="text-sm text-slate-500 mt-1">Walk-ins, appointments & QR scans</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Report
+            </Button>
             {currentUser?.department === "Analyst" || currentUser?.department === "CEO" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
@@ -248,13 +304,164 @@ export default function Reception() {
               header: "Action", 
               accessor: "id", 
               render: (_, row) => (
-                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
-                  <Edit className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    if (confirm("Are you sure you want to delete this report?")) {
+                      deleteMutation.mutate(row.id);
+                    }
+                  }}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
               )
             }
           ]}
         />
+
+        {/* Add Dialog */}
+        {addDialog && (
+          <Dialog open={addDialog} onOpenChange={setAddDialog}>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add Reception Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={newReport.report_date}
+                      onChange={(e) => setNewReport({ ...newReport, report_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Branch</Label>
+                    <select
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md"
+                      value={newReport.branch}
+                      onChange={(e) => setNewReport({ ...newReport, branch: e.target.value })}
+                    >
+                      <option value="">Select Branch</option>
+                      {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Walk-ins</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.walk_ins}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, walk_ins: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Appointments</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.appointments}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, appointments: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Conversions</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.conversions}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, conversions: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>No-shows</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.no_shows}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, no_shows: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cancellations</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.cancellations}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, cancellations: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>YouTube QR</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.youtube_qr_scans}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, youtube_qr_scans: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instagram QR</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.instagram_qr_scans}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, instagram_qr_scans: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Facebook QR</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.facebook_qr_scans}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, facebook_qr_scans: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setAddDialog(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => createMutation.mutate(newReport)}
+                    disabled={createMutation.isPending || !newReport.branch}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {createMutation.isPending ? "Adding..." : "Add Report"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Edit Dialog */}
         {editDialog && (
