@@ -12,8 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
-const DEPARTMENTS = ["Analyst", "Reception", "Customer Support", "Pharmacy", "Digital Marketing", "Center Manager"];
+const BRANCHES = ["All Branches", "Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
+const DEPARTMENTS = ["CEO", "Analyst", "Reception", "Customer Support", "Pharmacy", "Digital Marketing", "Center Manager"];
 
 export default function UserManagement() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -94,12 +94,12 @@ BranchIQ Team`
       return;
     }
 
-    // Digital Marketing gets all branches
-    const branchToSave = editingUser.department === "Digital Marketing" 
+    // Digital Marketing, CEO, and Analyst get all branches
+    const branchToSave = (editingUser.department === "Digital Marketing" || editingUser.department === "CEO" || editingUser.department === "Analyst")
       ? "All Branches" 
       : editingUser.branch;
 
-    if (!branchToSave && editingUser.department !== "Digital Marketing") {
+    if (!branchToSave && editingUser.department !== "Digital Marketing" && editingUser.department !== "CEO" && editingUser.department !== "Analyst") {
       toast.error("Please select a branch");
       return;
     }
@@ -215,12 +215,12 @@ BranchIQ Team`
 
                 <div className="space-y-2">
                   <Label>Branch</Label>
-                  {editingUser.department === "Digital Marketing" ? (
+                  {(editingUser.department === "Digital Marketing" || editingUser.department === "CEO" || editingUser.department === "Analyst") ? (
                     <div>
                       <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-md text-sm text-indigo-700 font-medium">
-                        All Branches (Digital Marketing has access to all)
+                        All Branches (Full access)
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">Digital Marketing users automatically get access to all branches</p>
+                      <p className="text-xs text-slate-500 mt-1">This role automatically gets access to all branches</p>
                     </div>
                   ) : (
                     <Select 
