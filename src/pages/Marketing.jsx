@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Target, TrendingUp, Phone, Plus, Edit } from "lucide-react";
+import { Target, TrendingUp, Phone, Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -255,9 +255,18 @@ export default function Marketing() {
               header: "Action", 
               accessor: "id", 
               render: (_, row) => (
-                <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
-                  <Edit className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    if (confirm("Are you sure you want to delete this report?")) {
+                      deleteMutation.mutate(row.id);
+                    }
+                  }}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
               )
             }
           ]}
