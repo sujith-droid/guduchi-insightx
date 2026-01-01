@@ -34,9 +34,6 @@ export default function CenterManager() {
     center_manager: {
       number_of_patients: 0,
       revenue: 0,
-      projected_patients: 0,
-      projected_revenue: 0,
-      tracking_days: 30,
       operational_notes: ""
     }
   });
@@ -58,7 +55,19 @@ export default function CenterManager() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.BranchReport.create(data),
+    mutationFn: async (data) => {
+      // Check if report exists for same date and branch
+      const existing = branchReports.find(
+        r => r.report_date === data.report_date && r.branch === data.branch
+      );
+      
+      if (existing) {
+        // Update existing report instead of creating duplicate
+        return await base44.entities.BranchReport.update(existing.id, data);
+      }
+      
+      return await base44.entities.BranchReport.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchReports"] });
       setAddDialog(false);
@@ -68,16 +77,13 @@ export default function CenterManager() {
         center_manager: {
           number_of_patients: 0,
           revenue: 0,
-          projected_patients: 0,
-          projected_revenue: 0,
-          tracking_days: 30,
           operational_notes: ""
         }
       });
-      toast.success("Report added successfully");
+      toast.success("Report saved successfully");
     },
     onError: () => {
-      toast.error("Failed to add report");
+      toast.error("Failed to save report");
     }
   });
 
@@ -382,18 +388,6 @@ export default function CenterManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Projected Patients</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={newReport.center_manager.projected_patients}
-                      onChange={(e) => setNewReport({
-                        ...newReport,
-                        center_manager: { ...newReport.center_manager, projected_patients: parseInt(e.target.value) || 0 }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label>Revenue</Label>
                     <Input
                       type="number"
@@ -402,30 +396,6 @@ export default function CenterManager() {
                       onChange={(e) => setNewReport({
                         ...newReport,
                         center_manager: { ...newReport.center_manager, revenue: parseInt(e.target.value) || 0 }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Projected Revenue</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={newReport.center_manager.projected_revenue}
-                      onChange={(e) => setNewReport({
-                        ...newReport,
-                        center_manager: { ...newReport.center_manager, projected_revenue: parseInt(e.target.value) || 0 }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Tracking Days</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={newReport.center_manager.tracking_days}
-                      onChange={(e) => setNewReport({
-                        ...newReport,
-                        center_manager: { ...newReport.center_manager, tracking_days: parseInt(e.target.value) || 30 }
                       })}
                     />
                   </div>
@@ -479,18 +449,6 @@ export default function CenterManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Projected Patients</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editDialog.center_manager?.projected_patients || 0}
-                      onChange={(e) => setEditDialog({
-                        ...editDialog,
-                        center_manager: { ...editDialog.center_manager, projected_patients: parseInt(e.target.value) || 0 }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label>Revenue</Label>
                     <Input
                       type="number"
@@ -499,30 +457,6 @@ export default function CenterManager() {
                       onChange={(e) => setEditDialog({
                         ...editDialog,
                         center_manager: { ...editDialog.center_manager, revenue: parseInt(e.target.value) || 0 }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Projected Revenue</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editDialog.center_manager?.projected_revenue || 0}
-                      onChange={(e) => setEditDialog({
-                        ...editDialog,
-                        center_manager: { ...editDialog.center_manager, projected_revenue: parseInt(e.target.value) || 0 }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Tracking Days</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={editDialog.center_manager?.tracking_days || 30}
-                      onChange={(e) => setEditDialog({
-                        ...editDialog,
-                        center_manager: { ...editDialog.center_manager, tracking_days: parseInt(e.target.value) || 30 }
                       })}
                     />
                   </div>
