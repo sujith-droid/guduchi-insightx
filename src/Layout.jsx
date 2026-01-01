@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import AccessDenied from "./components/AccessDenied";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard", departments: ["Analyst"], analystAdminOnly: true },
@@ -72,6 +73,22 @@ export default function Layout({ children, currentPageName }) {
 
   const handleLogout = () => {
     base44.auth.logout();
+  };
+
+  // Check if user has access to current page
+  const hasAccess = () => {
+    if (!currentUser) return false;
+    
+    // Always allow access to Settings and Help pages
+    if (currentPageName === "Settings" || currentPageName === "Help") return true;
+    
+    // Admin, CEO, and Analyst always have access
+    if (currentUser.role === "admin" || currentUser.department === "CEO" || currentUser.department === "Analyst") return true;
+    
+    // Check if user has branch and department assigned
+    if (!currentUser.branch || !currentUser.department) return false;
+    
+    return true;
   };
 
   return (
@@ -205,7 +222,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Main content */}
       <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen">
-        {children}
+        {currentUser && !hasAccess() ? <AccessDenied /> : children}
       </main>
     </div>
   );
