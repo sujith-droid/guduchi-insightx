@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, DollarSign, TrendingUp, TrendingDown, Building2, Edit, Plus, Trash2 } from "lucide-react";
+import { format, subDays, parseISO, isWithinInterval, startOfMonth } from "date-fns";
+import { Users, DollarSign, TrendingUp, TrendingDown, Building2, Edit, Plus, Trash2, Target } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,19 +28,21 @@ export default function CenterManager() {
   const [currentUser, setCurrentUser] = useState(null);
   const [editDialog, setEditDialog] = useState(null);
   const [addDialog, setAddDialog] = useState(false);
+  const [projectionDialog, setProjectionDialog] = useState(false);
   const [newReport, setNewReport] = useState({
     report_date: format(new Date(), "yyyy-MM-dd"),
     branch: "",
     center_manager: {
       number_of_patients: 0,
       revenue: 0,
+      tracking_days: 30,
       operational_notes: ""
     }
   });
 
   const queryClient = useQueryClient();
 
-  useState(() => {
+  useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
       if (user.department !== "Analyst" && user.department !== "CEO" && user.branch) {
@@ -52,6 +54,11 @@ export default function CenterManager() {
   const { data: branchReports = [], isLoading } = useQuery({
     queryKey: ["branchReports"],
     queryFn: () => base44.entities.BranchReport.list("-report_date", 500)
+  });
+
+  const { data: projections = [] } = useQuery({
+    queryKey: ["monthlyProjections"],
+    queryFn: () => base44.entities.MonthlyProjection.list()
   });
 
   const createMutation = useMutation({
@@ -77,6 +84,7 @@ export default function CenterManager() {
         center_manager: {
           number_of_patients: 0,
           revenue: 0,
+          tracking_days: 30,
           operational_notes: ""
         }
       });
@@ -84,6 +92,29 @@ export default function CenterManager() {
     },
     onError: () => {
       toast.error("Failed to save report");
+    }
+  });
+
+  const saveProjectionsMutation = useMutation({
+    mutationFn: async (projectionsData) => {
+      const promises = projectionsData.map(async (proj) => {
+        const existing = projections.find(
+          p => p.branch === proj.branch && p.month === proj.month
+        );
+        if (existing) {
+          return base44.entities.MonthlyProjection.update(existing.id, proj);
+        }
+        return base44.entities.MonthlyProjection.create(proj);
+      });
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["monthlyProjections"] });
+      setProjectionDialog(false);
+      toast.success("Projections saved successfully");
+    },
+    onError: () => {
+      toast.error("Failed to save projections");
     }
   });
 
@@ -117,11 +148,41 @@ export default function CenterManager() {
     return inRange && matchesBranch;
   });
 
-  // KPIs
-  const totalPatients = filteredReports.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0);
-  const totalRevenue = filteredReports.reduce((sum, r) => sum + (r.center_manager?.revenue || 0), 0);
-  const totalProjectedPatients = filteredReports.reduce((sum, r) => sum + (r.center_manager?.projected_patients || 0), 0);
-  const totalProjectedRevenue = filteredReports.reduce((sum, r) => sum + (r.center_manager?.projected_revenue || 0), 0);
+  // Get current month projections
+  const currentMonth = format(startOfMonth(new Date()), "yyyy-MM-dd");
+  const currentProjections = projections.filter(p => p.month === currentMonth);
+
+  // Calculate actual vs projected with tracking days
+  const getProjection = (branch) => {
+    return currentProjections.find(p => p.branch === branch);
+  };
+
+  // KPIs - calculate based on tracking days
+  const calculateMetrics = () => {
+    let totalPatients = 0;
+    let totalRevenue = 0;
+    let totalProjectedPatients = 0;
+    let totalProjectedRevenue = 0;
+    let totalDays = 0;
+
+    filteredReports.forEach(r => {
+      const days = r.center_manager?.tracking_days || 30;
+      const projection = getProjection(r.branch);
+      
+      totalPatients += r.center_manager?.number_of_patients || 0;
+      totalRevenue += r.center_manager?.revenue || 0;
+      
+      if (projection) {
+        totalProjectedPatients += (projection.projected_patients / 30) * days;
+        totalProjectedRevenue += (projection.projected_revenue / 30) * days;
+      }
+      totalDays += days;
+    });
+
+    return { totalPatients, totalRevenue, totalProjectedPatients, totalProjectedRevenue };
+  };
+
+  const { totalPatients, totalRevenue, totalProjectedPatients, totalProjectedRevenue } = calculateMetrics();
 
   const patientDeviation = totalProjectedPatients > 0 
     ? (((totalPatients - totalProjectedPatients) / totalProjectedPatients) * 100).toFixed(1) 
@@ -133,10 +194,23 @@ export default function CenterManager() {
   // Branch summaries
   const branchSummaries = BRANCHES.map(branch => {
     const data = filteredReports.filter(r => r.branch === branch);
-    const patients = data.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0);
-    const revenue = data.reduce((sum, r) => sum + (r.center_manager?.revenue || 0), 0);
-    const projPatients = data.reduce((sum, r) => sum + (r.center_manager?.projected_patients || 0), 0);
-    const projRevenue = data.reduce((sum, r) => sum + (r.center_manager?.projected_revenue || 0), 0);
+    const projection = getProjection(branch);
+    
+    let patients = 0;
+    let revenue = 0;
+    let projPatients = 0;
+    let projRevenue = 0;
+
+    data.forEach(r => {
+      const days = r.center_manager?.tracking_days || 30;
+      patients += r.center_manager?.number_of_patients || 0;
+      revenue += r.center_manager?.revenue || 0;
+      
+      if (projection) {
+        projPatients += (projection.projected_patients / 30) * days;
+        projRevenue += (projection.projected_revenue / 30) * days;
+      }
+    });
     
     const patDev = projPatients > 0 ? (((patients - projPatients) / projPatients) * 100).toFixed(1) : 0;
     const revDev = projRevenue > 0 ? (((revenue - projRevenue) / projRevenue) * 100).toFixed(1) : 0;
@@ -153,11 +227,17 @@ export default function CenterManager() {
 
   // Table data
   const tableData = filteredReports.map(r => {
-    const patDev = r.center_manager?.projected_patients > 0 
-      ? (((r.center_manager?.number_of_patients || 0) - r.center_manager?.projected_patients) / r.center_manager?.projected_patients * 100).toFixed(1)
+    const days = r.center_manager?.tracking_days || 30;
+    const projection = getProjection(r.branch);
+    
+    const projPatients = projection ? (projection.projected_patients / 30) * days : 0;
+    const projRevenue = projection ? (projection.projected_revenue / 30) * days : 0;
+    
+    const patDev = projPatients > 0 
+      ? (((r.center_manager?.number_of_patients || 0) - projPatients) / projPatients * 100).toFixed(1)
       : 0;
-    const revDev = r.center_manager?.projected_revenue > 0 
-      ? (((r.center_manager?.revenue || 0) - r.center_manager?.projected_revenue) / r.center_manager?.projected_revenue * 100).toFixed(1)
+    const revDev = projRevenue > 0 
+      ? (((r.center_manager?.revenue || 0) - projRevenue) / projRevenue * 100).toFixed(1)
       : 0;
     
     return {
@@ -166,12 +246,12 @@ export default function CenterManager() {
       date: format(parseISO(r.report_date), "MMM d, yyyy"),
       branch: r.branch,
       patients: r.center_manager?.number_of_patients || 0,
-      projectedPatients: r.center_manager?.projected_patients || 0,
+      projectedPatients: projPatients.toFixed(0),
       patientDev: patDev,
       revenue: r.center_manager?.revenue || 0,
-      projectedRevenue: r.center_manager?.projected_revenue || 0,
+      projectedRevenue: projRevenue.toFixed(0),
       revenueDev: revDev,
-      trackingDays: r.center_manager?.tracking_days || 30,
+      trackingDays: days,
       notes: r.center_manager?.operational_notes || ""
     };
   }).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -186,9 +266,13 @@ export default function CenterManager() {
             <p className="text-sm text-slate-500 mt-1">Patient count, revenue & performance tracking</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setProjectionDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
+              <Target className="w-4 h-4 mr-2" />
+              Set Monthly Projections
+            </Button>
             <Button onClick={() => setAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
               <Plus className="w-4 h-4 mr-2" />
-              Add Report
+              Add Daily Report
             </Button>
             {currentUser?.department === "Analyst" || currentUser?.department === "CEO" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
@@ -347,6 +431,95 @@ export default function CenterManager() {
           ]}
         />
 
+        {/* Monthly Projections Dialog */}
+        {projectionDialog && (
+          <Dialog open={projectionDialog} onOpenChange={setProjectionDialog}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Set Monthly Projections - {format(new Date(), "MMMM yyyy")}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <p className="text-sm text-slate-600">Set projected patients and revenue for each branch for this month.</p>
+                <div className="space-y-3">
+                  {BRANCHES.map(branch => {
+                    const existing = currentProjections.find(p => p.branch === branch);
+                    const [projData, setProjData] = useState({
+                      branch,
+                      month: currentMonth,
+                      projected_patients: existing?.projected_patients || 0,
+                      projected_revenue: existing?.projected_revenue || 0
+                    });
+
+                    return (
+                      <Card key={branch} className="border shadow-sm">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-slate-400" />
+                            {branch}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Projected Patients (Monthly)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                defaultValue={existing?.projected_patients || 0}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 0;
+                                  setProjData(prev => ({ ...prev, projected_patients: value }));
+                                }}
+                                id={`proj-patients-${branch}`}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Projected Revenue (Monthly)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                defaultValue={existing?.projected_revenue || 0}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 0;
+                                  setProjData(prev => ({ ...prev, projected_revenue: value }));
+                                }}
+                                id={`proj-revenue-${branch}`}
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setProjectionDialog(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      const projectionsToSave = BRANCHES.map(branch => {
+                        const existing = currentProjections.find(p => p.branch === branch);
+                        return {
+                          branch,
+                          month: currentMonth,
+                          projected_patients: parseInt(document.getElementById(`proj-patients-${branch}`).value) || existing?.projected_patients || 0,
+                          projected_revenue: parseInt(document.getElementById(`proj-revenue-${branch}`).value) || existing?.projected_revenue || 0
+                        };
+                      });
+                      saveProjectionsMutation.mutate(projectionsToSave);
+                    }}
+                    disabled={saveProjectionsMutation.isPending}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {saveProjectionsMutation.isPending ? "Saving..." : "Save Projections"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
         {/* Add Dialog */}
         {addDialog && (
           <Dialog open={addDialog} onOpenChange={setAddDialog}>
@@ -398,6 +571,20 @@ export default function CenterManager() {
                         center_manager: { ...newReport.center_manager, revenue: parseInt(e.target.value) || 0 }
                       })}
                     />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Number of Days</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={newReport.center_manager.tracking_days}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        center_manager: { ...newReport.center_manager, tracking_days: parseInt(e.target.value) || 30 }
+                      })}
+                    />
+                    <p className="text-xs text-slate-500">Used to calculate deviation against monthly projection</p>
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label>Operational Notes</Label>
@@ -459,6 +646,20 @@ export default function CenterManager() {
                         center_manager: { ...editDialog.center_manager, revenue: parseInt(e.target.value) || 0 }
                       })}
                     />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Number of Days</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={editDialog.center_manager?.tracking_days || 30}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        center_manager: { ...editDialog.center_manager, tracking_days: parseInt(e.target.value) || 30 }
+                      })}
+                    />
+                    <p className="text-xs text-slate-500">Used to calculate deviation against monthly projection</p>
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label>Operational Notes</Label>
