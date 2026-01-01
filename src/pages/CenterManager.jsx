@@ -29,6 +29,7 @@ export default function CenterManager() {
   const [editDialog, setEditDialog] = useState(null);
   const [addDialog, setAddDialog] = useState(false);
   const [projectionDialog, setProjectionDialog] = useState(false);
+  const [editingProjections, setEditingProjections] = useState({});
   const [newReport, setNewReport] = useState({
     report_date: format(new Date(), "yyyy-MM-dd"),
     branch: "",
@@ -256,6 +257,19 @@ export default function CenterManager() {
     };
   }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
+  const handleOpenProjectionDialog = () => {
+    const initialProjections = {};
+    BRANCHES.forEach(branch => {
+      const existing = projections.find(p => p.branch === branch && p.month === currentMonth);
+      initialProjections[branch] = {
+        projected_patients: existing?.projected_patients || 0,
+        projected_revenue: existing?.projected_revenue || 0,
+      };
+    });
+    setEditingProjections(initialProjections);
+    setProjectionDialog(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -266,7 +280,7 @@ export default function CenterManager() {
             <p className="text-sm text-slate-500 mt-1">Patient count, revenue & performance tracking</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => setProjectionDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={handleOpenProjectionDialog} className="bg-emerald-600 hover:bg-emerald-700">
               <Target className="w-4 h-4 mr-2" />
               Set Monthly Projections
             </Button>
@@ -441,56 +455,44 @@ export default function CenterManager() {
               <div className="space-y-4 pt-4">
                 <p className="text-sm text-slate-600">Set projected patients and revenue for each branch for this month.</p>
                 <div className="space-y-3">
-                  {BRANCHES.map(branch => {
-                    const existing = currentProjections.find(p => p.branch === branch);
-                    const [projData, setProjData] = useState({
-                      branch,
-                      month: currentMonth,
-                      projected_patients: existing?.projected_patients || 0,
-                      projected_revenue: existing?.projected_revenue || 0
-                    });
-
-                    return (
-                      <Card key={branch} className="border shadow-sm">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-slate-400" />
-                            {branch}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Projected Patients (Monthly)</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                defaultValue={existing?.projected_patients || 0}
-                                onChange={(e) => {
-                                  const value = parseInt(e.target.value) || 0;
-                                  setProjData(prev => ({ ...prev, projected_patients: value }));
-                                }}
-                                id={`proj-patients-${branch}`}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Projected Revenue (Monthly)</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                defaultValue={existing?.projected_revenue || 0}
-                                onChange={(e) => {
-                                  const value = parseInt(e.target.value) || 0;
-                                  setProjData(prev => ({ ...prev, projected_revenue: value }));
-                                }}
-                                id={`proj-revenue-${branch}`}
-                              />
-                            </div>
+                  {BRANCHES.map(branch => (
+                    <Card key={branch} className="border shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                          {branch}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Projected Patients (Monthly)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={editingProjections[branch]?.projected_patients || 0}
+                              onChange={(e) => setEditingProjections(prev => ({
+                                ...prev,
+                                [branch]: { ...prev[branch], projected_patients: parseInt(e.target.value) || 0 }
+                              }))}
+                            />
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                          <div className="space-y-1">
+                            <Label className="text-xs">Projected Revenue (Monthly)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={editingProjections[branch]?.projected_revenue || 0}
+                              onChange={(e) => setEditingProjections(prev => ({
+                                ...prev,
+                                [branch]: { ...prev[branch], projected_revenue: parseInt(e.target.value) || 0 }
+                              }))}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" onClick={() => setProjectionDialog(false)} className="flex-1">
@@ -498,15 +500,12 @@ export default function CenterManager() {
                   </Button>
                   <Button 
                     onClick={() => {
-                      const projectionsToSave = BRANCHES.map(branch => {
-                        const existing = currentProjections.find(p => p.branch === branch);
-                        return {
-                          branch,
-                          month: currentMonth,
-                          projected_patients: parseInt(document.getElementById(`proj-patients-${branch}`).value) || existing?.projected_patients || 0,
-                          projected_revenue: parseInt(document.getElementById(`proj-revenue-${branch}`).value) || existing?.projected_revenue || 0
-                        };
-                      });
+                      const projectionsToSave = BRANCHES.map(branch => ({
+                        branch,
+                        month: currentMonth,
+                        projected_patients: editingProjections[branch]?.projected_patients || 0,
+                        projected_revenue: editingProjections[branch]?.projected_revenue || 0
+                      }));
                       saveProjectionsMutation.mutate(projectionsToSave);
                     }}
                     disabled={saveProjectionsMutation.isPending}
