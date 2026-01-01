@@ -126,8 +126,8 @@ export default function Dashboard() {
     console.log(`Exporting as ${exportFormat}`);
   };
 
-  // Check access - only admin and analyst can access dashboard
-  if (currentUser && currentUser.role !== "admin" && currentUser.department !== "Analyst") {
+  // Check access - only admin, analyst, and CEO can access dashboard
+  if (currentUser && currentUser.role !== "admin" && currentUser.department !== "Analyst" && currentUser.department !== "CEO") {
     return <AccessDenied />;
   }
 
@@ -148,7 +148,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+            <BranchSelector value={selectedBranch} onChange={setSelectedBranch} user={currentUser} />
             <DateRangeSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
             <ExportButton onExport={handleExport} />
           </div>
