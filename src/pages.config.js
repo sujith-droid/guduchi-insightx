@@ -7,6 +7,7 @@ import Reception from './pages/Reception';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import UserManagement from './pages/UserManagement';
+import Help from './pages/Help';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +21,7 @@ export const PAGES = {
     "Reports": Reports,
     "Settings": Settings,
     "UserManagement": UserManagement,
+    "Help": Help,
 }
 
 export const pagesConfig = {
