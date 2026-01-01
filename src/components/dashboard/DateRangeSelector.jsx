@@ -51,9 +51,11 @@ export default function DateRangeSelector({ dateRange, onDateRangeChange }) {
             mode="range"
             selected={{ from: dateRange.from, to: dateRange.to }}
             onSelect={(range) => {
-              if (range?.from && range?.to) {
-                onDateRangeChange({ from: range.from, to: range.to });
-                setOpen(false);
+              if (range?.from) {
+                onDateRangeChange({ from: range.from, to: range.to || range.from });
+                if (range?.to) {
+                  setOpen(false);
+                }
               }
             }}
             numberOfMonths={2}
