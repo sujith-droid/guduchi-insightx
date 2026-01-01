@@ -49,7 +49,7 @@ export default function DateRangeSelector({ dateRange, onDateRangeChange }) {
         <PopoverContent className="w-auto p-0" align="end">
           <Calendar
             mode="range"
-            selected={{ from: dateRange.from, to: dateRange.to }}
+            selected={undefined}
             onSelect={(range) => {
               if (range?.from && range?.to) {
                 onDateRangeChange({ from: range.from, to: range.to });
