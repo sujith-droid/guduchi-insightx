@@ -17,6 +17,7 @@ const PRESETS = [
 
 export default function DateRangeSelector({ dateRange, onDateRangeChange }) {
   const [open, setOpen] = useState(false);
+  const [tempRange, setTempRange] = useState(undefined);
 
   return (
     <div className="flex items-center gap-2">
@@ -39,7 +40,12 @@ export default function DateRangeSelector({ dateRange, onDateRangeChange }) {
           </Button>
         ))}
       </div>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (isOpen) {
+          setTempRange(undefined);
+        }
+      }}>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
             <CalendarIcon className="w-3.5 h-3.5" />
@@ -49,11 +55,13 @@ export default function DateRangeSelector({ dateRange, onDateRangeChange }) {
         <PopoverContent className="w-auto p-0" align="end">
           <Calendar
             mode="range"
-            selected={undefined}
+            selected={tempRange}
             onSelect={(range) => {
+              setTempRange(range);
               if (range?.from && range?.to) {
                 onDateRangeChange({ from: range.from, to: range.to });
                 setOpen(false);
+                setTempRange(undefined);
               }
             }}
             numberOfMonths={2}
