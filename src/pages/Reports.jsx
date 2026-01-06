@@ -80,13 +80,13 @@ export default function Reports() {
   const generateSummary = (reports, mktReports) => {
     return {
       walkIns: reports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
-      conversions: reports.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0),
-      calls: reports.reduce((sum, r) => sum + (r.customer_support?.incoming_calls || 0), 0),
-      orders: reports.reduce((sum, r) => sum + (r.pharmacy?.daily_orders || 0), 0),
-      revenue: reports.reduce((sum, r) => sum + (r.pharmacy?.revenue || 0), 0),
-      leads: mktReports.reduce((sum, r) => sum + (r.leads_generated || 0), 0),
-      spend: mktReports.reduce((sum, r) => sum + (r.spend || 0), 0),
-      issues: reports.reduce((sum, r) => sum + (r.center_manager?.issues_raised || 0), 0)
+      conversions: reports.reduce((sum, r) => sum + ((r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0)), 0),
+      calls: reports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0),
+      patients: reports.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0),
+      revenue: reports.reduce((sum, r) => sum + (r.center_manager?.revenue || 0), 0),
+      leads: mktReports.reduce((sum, r) => sum + ((r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0)), 0),
+      pharmacySales: reports.reduce((sum, r) => sum + ((r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)), 0),
+      googleReviews: reports.reduce((sum, r) => sum + (r.pharmacy?.google_reviews || 0), 0)
     };
   };
 
@@ -250,11 +250,11 @@ export default function Reports() {
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
                 <p className="text-2xl font-semibold text-slate-900">{currentSummary.calls}</p>
-                <p className="text-xs text-slate-500">Calls</p>
+                <p className="text-xs text-slate-500">Answered Calls</p>
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.orders}</p>
-                <p className="text-xs text-slate-500">Orders</p>
+                <p className="text-2xl font-semibold text-slate-900">{currentSummary.patients}</p>
+                <p className="text-xs text-slate-500">Patients</p>
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
                 <p className="text-2xl font-semibold text-slate-900">₹{(currentSummary.revenue / 1000).toFixed(1)}K</p>
@@ -262,15 +262,15 @@ export default function Reports() {
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
                 <p className="text-2xl font-semibold text-slate-900">{currentSummary.leads}</p>
-                <p className="text-xs text-slate-500">Leads</p>
+                <p className="text-xs text-slate-500">Marketing Leads</p>
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">₹{(currentSummary.spend / 1000).toFixed(1)}K</p>
-                <p className="text-xs text-slate-500">Ad Spend</p>
+                <p className="text-2xl font-semibold text-slate-900">₹{(currentSummary.pharmacySales / 1000).toFixed(1)}K</p>
+                <p className="text-xs text-slate-500">Pharmacy Sales</p>
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.issues}</p>
-                <p className="text-xs text-slate-500">Issues</p>
+                <p className="text-2xl font-semibold text-slate-900">{currentSummary.googleReviews}</p>
+                <p className="text-xs text-slate-500">Reviews</p>
               </div>
             </div>
           </CardContent>
@@ -313,19 +313,21 @@ export default function Reports() {
             date: format(parseISO(r.report_date), "MMM d, yyyy"),
             branch: r.branch,
             walkIns: r.reception?.walk_ins || 0,
-            calls: r.customer_support?.incoming_calls || 0,
-            orders: r.pharmacy?.daily_orders || 0,
-            revenue: r.pharmacy?.revenue || 0,
-            issues: r.center_manager?.issues_raised || 0
+            conversions: (r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0),
+            calls: r.customer_support?.total_answered_calls || 0,
+            patients: r.center_manager?.number_of_patients || 0,
+            revenue: r.center_manager?.revenue || 0,
+            pharmacySales: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)
           })).sort((a, b) => new Date(b.date) - new Date(a.date))}
           columns={[
             { header: "Date", accessor: "date" },
             { header: "Branch", accessor: "branch" },
             { header: "Walk-ins", accessor: "walkIns" },
+            { header: "Conversions", accessor: "conversions" },
             { header: "Calls", accessor: "calls" },
-            { header: "Orders", accessor: "orders" },
+            { header: "Patients", accessor: "patients" },
             { header: "Revenue", accessor: "revenue", render: (val) => `₹${val.toLocaleString()}` },
-            { header: "Issues", accessor: "issues" }
+            { header: "Pharmacy", accessor: "pharmacySales", render: (val) => `₹${val.toLocaleString()}` }
           ]}
         />
       </div>
