@@ -31,7 +31,13 @@ export default function Reports() {
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
+    base44.auth.me().then(user => {
+      setCurrentUser(user);
+      // Auto-select branch for Center Managers
+      if (user.department === "Center Manager" && user.branch) {
+        setSelectedBranch(user.branch);
+      }
+    }).catch(() => {});
   }, []);
   const [newReport, setNewReport] = useState({
     branch: "",
