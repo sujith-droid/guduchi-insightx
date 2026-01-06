@@ -6,13 +6,20 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 
+// Helper to create date at start of day
+const startOfDay = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
 const PRESETS = [
-  { label: "Today", getValue: () => ({ from: new Date(), to: new Date() }) },
-  { label: "Yesterday", getValue: () => ({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) }) },
-  { label: "Last 7 Days", getValue: () => ({ from: subDays(new Date(), 6), to: new Date() }) },
-  { label: "Last 30 Days", getValue: () => ({ from: subDays(new Date(), 29), to: new Date() }) },
-  { label: "This Week", getValue: () => ({ from: startOfWeek(new Date()), to: new Date() }) },
-  { label: "This Month", getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
+  { label: "Today", getValue: () => ({ from: startOfDay(new Date()), to: startOfDay(new Date()) }) },
+  { label: "Yesterday", getValue: () => ({ from: startOfDay(subDays(new Date(), 1)), to: startOfDay(subDays(new Date(), 1)) }) },
+  { label: "Last 7 Days", getValue: () => ({ from: startOfDay(subDays(new Date(), 6)), to: startOfDay(new Date()) }) },
+  { label: "Last 30 Days", getValue: () => ({ from: startOfDay(subDays(new Date(), 29)), to: startOfDay(new Date()) }) },
+  { label: "This Week", getValue: () => ({ from: startOfDay(startOfWeek(new Date())), to: startOfDay(new Date()) }) },
+  { label: "This Month", getValue: () => ({ from: startOfDay(startOfMonth(new Date())), to: startOfDay(new Date()) }) },
 ];
 
 export default function DateRangeSelector({ dateRange, onDateRangeChange }) {
