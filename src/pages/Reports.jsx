@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval, startOfWeek, startOfMonth, endOfWeek, endOfMonth } from "date-fns";
 import { FileText, Download, Calendar, BarChart3, Plus, Loader2 } from "lucide-react";
-import { utils, writeFile } from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -110,9 +109,37 @@ export default function Reports() {
     createReportMutation.mutate(newReport);
   };
 
+  const convertToCSV = (data, headers) => {
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+    
+    data.forEach(row => {
+      const values = headers.map(header => {
+        const value = row[header] || '';
+        return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+      });
+      csvRows.push(values.join(','));
+    });
+    
+    return csvRows.join('\n');
+  };
+
+  const downloadCSV = (csv, filename) => {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const handleExport = (reportType) => {
     try {
-      const wb = utils.book_new();
+      const branchName = selectedBranch === "All Branches" ? "All" : selectedBranch;
+      const dateStr = format(new Date(), "yyyy-MM-dd");
       
       // Reception Data
       const receptionData = filteredReports.map(r => ({
@@ -128,9 +155,7 @@ export default function Reports() {
         InstagramQR: r.reception?.instagram_qr_scans || 0,
         FacebookQR: r.reception?.facebook_qr_scans || 0
       }));
-      const receptionWS = utils.json_to_sheet(receptionData);
-      utils.book_append_sheet(wb, receptionWS, "Reception");
-
+      
       // Customer Support Data
       const supportData = filteredReports.map(r => ({
         Date: r.report_date,
@@ -139,9 +164,7 @@ export default function Reports() {
         Appointments: r.customer_support?.total_appointments || 0,
         OutboundCalls: r.customer_support?.total_outbound_calls || 0
       }));
-      const supportWS = utils.json_to_sheet(supportData);
-      utils.book_append_sheet(wb, supportWS, "Customer Support");
-
+      
       // Pharmacy Data
       const pharmacyData = filteredReports.map(r => ({
         Date: r.report_date,
@@ -154,9 +177,7 @@ export default function Reports() {
         PatientIDNotBuying: r.pharmacy?.patient_id_not_buying || "",
         ReasonsNotBuying: r.pharmacy?.reasons_not_buying || ""
       }));
-      const pharmacyWS = utils.json_to_sheet(pharmacyData);
-      utils.book_append_sheet(wb, pharmacyWS, "Pharmacy");
-
+      
       // Center Manager Data
       const centerData = filteredReports.map(r => ({
         Date: r.report_date,
@@ -167,16 +188,23 @@ export default function Reports() {
         ProjectedRevenue: r.center_manager?.projected_revenue || 0,
         Notes: r.center_manager?.operational_notes || ""
       }));
-      const centerWS = utils.json_to_sheet(centerData);
-      utils.book_append_sheet(wb, centerWS, "Center Manager");
 
-      // Generate filename
-      const branchName = selectedBranch === "All Branches" ? "All" : selectedBranch;
-      const dateStr = format(new Date(), "yyyy-MM-dd");
-      const filename = `${branchName}_${reportType}_${dateStr}.xlsx`;
+      // Combine all data into one CSV with section headers
+      let fullCSV = "RECEPTION DATA\n";
+      fullCSV += convertToCSV(receptionData, ['Date', 'Branch', 'Consultations', 'Appointments', 'DRP', 'TrialPack', 'NoShows', 'Cancellations', 'YouTubeQR', 'InstagramQR', 'FacebookQR']);
+      
+      fullCSV += "\n\nCUSTOMER SUPPORT DATA\n";
+      fullCSV += convertToCSV(supportData, ['Date', 'Branch', 'AnsweredCalls', 'Appointments', 'OutboundCalls']);
+      
+      fullCSV += "\n\nPHARMACY DATA\n";
+      fullCSV += convertToCSV(pharmacyData, ['Date', 'Branch', 'Cash', 'PaytmSwipe', 'Expenses', 'TotalSales', 'GoogleReviews', 'PatientIDNotBuying', 'ReasonsNotBuying']);
+      
+      fullCSV += "\n\nCENTER MANAGER DATA\n";
+      fullCSV += convertToCSV(centerData, ['Date', 'Branch', 'Patients', 'Revenue', 'ProjectedPatients', 'ProjectedRevenue', 'Notes']);
 
-      // Download
-      writeFile(wb, filename);
+      const filename = `${branchName}_${reportType}_${dateStr}.csv`;
+      downloadCSV(fullCSV, filename);
+      
       toast.success("Report exported successfully");
     } catch (error) {
       toast.error("Failed to export report");
