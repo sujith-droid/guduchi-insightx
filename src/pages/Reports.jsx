@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval, startOfWeek, startOfMonth, endOfWeek, endOfMonth } from "date-fns";
 import { FileText, Download, Calendar, BarChart3, Plus, Loader2 } from "lucide-react";
+import { utils, writeFile } from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -109,12 +110,9 @@ export default function Reports() {
     createReportMutation.mutate(newReport);
   };
 
-  const handleExport = async (reportType) => {
+  const handleExport = (reportType) => {
     try {
-      // Dynamically import xlsx only when needed
-      const XLSX = await import('xlsx');
-      
-      const wb = XLSX.utils.book_new();
+      const wb = utils.book_new();
       
       // Reception Data
       const receptionData = filteredReports.map(r => ({
@@ -130,8 +128,8 @@ export default function Reports() {
         InstagramQR: r.reception?.instagram_qr_scans || 0,
         FacebookQR: r.reception?.facebook_qr_scans || 0
       }));
-      const receptionWS = XLSX.utils.json_to_sheet(receptionData);
-      XLSX.utils.book_append_sheet(wb, receptionWS, "Reception");
+      const receptionWS = utils.json_to_sheet(receptionData);
+      utils.book_append_sheet(wb, receptionWS, "Reception");
 
       // Customer Support Data
       const supportData = filteredReports.map(r => ({
@@ -141,8 +139,8 @@ export default function Reports() {
         Appointments: r.customer_support?.total_appointments || 0,
         OutboundCalls: r.customer_support?.total_outbound_calls || 0
       }));
-      const supportWS = XLSX.utils.json_to_sheet(supportData);
-      XLSX.utils.book_append_sheet(wb, supportWS, "Customer Support");
+      const supportWS = utils.json_to_sheet(supportData);
+      utils.book_append_sheet(wb, supportWS, "Customer Support");
 
       // Pharmacy Data
       const pharmacyData = filteredReports.map(r => ({
@@ -156,8 +154,8 @@ export default function Reports() {
         PatientIDNotBuying: r.pharmacy?.patient_id_not_buying || "",
         ReasonsNotBuying: r.pharmacy?.reasons_not_buying || ""
       }));
-      const pharmacyWS = XLSX.utils.json_to_sheet(pharmacyData);
-      XLSX.utils.book_append_sheet(wb, pharmacyWS, "Pharmacy");
+      const pharmacyWS = utils.json_to_sheet(pharmacyData);
+      utils.book_append_sheet(wb, pharmacyWS, "Pharmacy");
 
       // Center Manager Data
       const centerData = filteredReports.map(r => ({
@@ -169,8 +167,8 @@ export default function Reports() {
         ProjectedRevenue: r.center_manager?.projected_revenue || 0,
         Notes: r.center_manager?.operational_notes || ""
       }));
-      const centerWS = XLSX.utils.json_to_sheet(centerData);
-      XLSX.utils.book_append_sheet(wb, centerWS, "Center Manager");
+      const centerWS = utils.json_to_sheet(centerData);
+      utils.book_append_sheet(wb, centerWS, "Center Manager");
 
       // Generate filename
       const branchName = selectedBranch === "All Branches" ? "All" : selectedBranch;
@@ -178,7 +176,7 @@ export default function Reports() {
       const filename = `${branchName}_${reportType}_${dateStr}.xlsx`;
 
       // Download
-      XLSX.writeFile(wb, filename);
+      writeFile(wb, filename);
       toast.success("Report exported successfully");
     } catch (error) {
       toast.error("Failed to export report");
