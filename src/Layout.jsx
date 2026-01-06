@@ -82,13 +82,14 @@ export default function Layout({ children, currentPageName }) {
     // Always allow access to Settings and Help pages
     if (currentPageName === "Settings" || currentPageName === "Help") return true;
     
-    // Admin, CEO, and Analyst always have access
-    if (currentUser.role === "admin" || currentUser.department === "CEO" || currentUser.department === "Analyst") return true;
+    // Find the current page in NAV_ITEMS
+    const currentPageItem = NAV_ITEMS.find(item => item.page === currentPageName);
     
-    // Check if user has branch and department assigned
-    if (!currentUser.branch || !currentUser.department) return false;
+    // If page not found in nav items, deny access
+    if (!currentPageItem) return false;
     
-    return true;
+    // Use the same access logic as navigation
+    return canAccessPage(currentPageItem, currentUser);
   };
 
   return (
