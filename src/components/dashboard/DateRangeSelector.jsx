@@ -19,26 +19,39 @@ export default function DateRangeSelector({ dateRange, onDateRangeChange }) {
   const [open, setOpen] = useState(false);
   const [tempRange, setTempRange] = useState(undefined);
 
+  // Helper to normalize dates to start of day for comparison
+  const normalizeDate = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-        {PRESETS.slice(0, 4).map((preset) => (
-          <Button
-            key={preset.label}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "text-xs px-3 h-8 rounded-md",
-              format(dateRange.from, "yyyy-MM-dd") === format(preset.getValue().from, "yyyy-MM-dd") &&
-              format(dateRange.to, "yyyy-MM-dd") === format(preset.getValue().to, "yyyy-MM-dd")
-                ? "bg-white shadow-sm text-slate-900"
-                : "text-slate-600 hover:text-slate-900"
-            )}
-            onClick={() => onDateRangeChange(preset.getValue())}
-          >
-            {preset.label}
-          </Button>
-        ))}
+        {PRESETS.slice(0, 4).map((preset) => {
+          const presetValue = preset.getValue();
+          const isActive = 
+            normalizeDate(dateRange.from).getTime() === normalizeDate(presetValue.from).getTime() &&
+            normalizeDate(dateRange.to).getTime() === normalizeDate(presetValue.to).getTime();
+
+          return (
+            <Button
+              key={preset.label}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "text-xs px-3 h-8 rounded-md",
+                isActive
+                  ? "bg-white shadow-sm text-slate-900"
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+              onClick={() => onDateRangeChange(presetValue)}
+            >
+              {preset.label}
+            </Button>
+          );
+        })}
       </div>
       <Popover open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);

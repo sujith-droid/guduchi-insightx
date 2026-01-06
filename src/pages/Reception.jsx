@@ -116,7 +116,7 @@ export default function Reception() {
   });
 
   // KPIs
-  const totalWalkIns = filteredReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0);
+  const totalConsultations = filteredReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0);
   const totalAppointments = filteredReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0);
   const totalConversions = filteredReports.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0);
   const totalNoShows = filteredReports.reduce((sum, r) => sum + (r.reception?.no_shows || 0), 0);
@@ -125,7 +125,7 @@ export default function Reception() {
   const totalInstagramScans = filteredReports.reduce((sum, r) => sum + (r.reception?.instagram_qr_scans || 0), 0);
   const totalFacebookScans = filteredReports.reduce((sum, r) => sum + (r.reception?.facebook_qr_scans || 0), 0);
 
-  const conversionRate = totalWalkIns > 0 ? ((totalConversions / totalWalkIns) * 100).toFixed(1) : 0;
+  const conversionRate = totalConsultations > 0 ? ((totalConversions / totalConsultations) * 100).toFixed(1) : 0;
   const noShowRate = totalAppointments > 0 ? ((totalNoShows / totalAppointments) * 100).toFixed(1) : 0;
 
   // Trend data
@@ -136,7 +136,7 @@ export default function Reception() {
     const dayReports = filteredReports.filter(r => r.report_date === dateStr);
     trendData.push({
       date: format(currentDate, "MMM d"),
-      walkIns: dayReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
+      consultations: dayReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
       appointments: dayReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0),
       conversions: dayReports.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0)
     });
@@ -158,7 +158,7 @@ export default function Reception() {
     report: r,
     date: format(parseISO(r.report_date), "MMM d, yyyy"),
     branch: r.branch,
-    walkIns: r.reception?.walk_ins || 0,
+    consultations: r.reception?.walk_ins || 0,
     appointments: r.reception?.appointments || 0,
     conversions: r.reception?.conversions || 0,
     noShows: r.reception?.no_shows || 0,
@@ -175,7 +175,7 @@ export default function Reception() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Reception</h1>
-            <p className="text-sm text-slate-500 mt-1">Walk-ins, appointments & QR scans</p>
+            <p className="text-sm text-slate-500 mt-1">Consultations, appointments & QR scans</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={() => setAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
@@ -220,9 +220,9 @@ export default function Reception() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <KPICard title="Walk-ins" value={totalWalkIns} icon={Users} trend="up" change={8} />
+          <KPICard title="Consultations" value={totalConsultations} icon={Users} trend="up" change={8} />
           <KPICard title="Appointments" value={totalAppointments} icon={Calendar} trend="up" change={12} />
-          <KPICard title="Conversions" value={totalConversions} icon={UserCheck} trend="up" change={15} />
+          <KPICard title="DRP/Trial Pack" value={totalConversions} icon={UserCheck} trend="up" change={15} />
           <KPICard title="No-shows" value={totalNoShows} icon={UserX} trend={totalNoShows > 0 ? "down" : "up"} />
           <KPICard title="Conversion Rate" value={`${conversionRate}%`} icon={TrendingUp} trend="up" />
         </div>
@@ -270,17 +270,17 @@ export default function Reception() {
             title="Daily Trend"
             data={trendData}
             lines={[
-              { dataKey: "walkIns", name: "Walk-ins" },
+              { dataKey: "consultations", name: "Consultations" },
               { dataKey: "appointments", name: "Appointments" },
-              { dataKey: "conversions", name: "Conversions" }
+              { dataKey: "conversions", name: "DRP/Trial Pack" }
             ]}
           />
           {selectedBranch === "All Branches" && (
             <BranchComparisonChart
-              title="Walk-ins by Branch"
+              title="Consultations by Branch"
               data={branchData}
               dataKey="value"
-              metric="Walk-ins"
+              metric="Consultations"
             />
           )}
         </div>
@@ -292,9 +292,9 @@ export default function Reception() {
           columns={[
             { header: "Date", accessor: "date" },
             { header: "Branch", accessor: "branch" },
-            { header: "Walk-ins", accessor: "walkIns" },
+            { header: "Consultations", accessor: "consultations" },
             { header: "Appointments", accessor: "appointments" },
-            { header: "Conversions", accessor: "conversions" },
+            { header: "DRP/Trial Pack", accessor: "conversions" },
             { header: "No-shows", accessor: "noShows" },
             { header: "Cancellations", accessor: "cancellations" },
             { header: "YouTube", accessor: "youtubeScans" },
@@ -350,7 +350,7 @@ export default function Reception() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Walk-ins</Label>
+                    <Label>Consultations</Label>
                     <Input
                       type="number"
                       min="0"
@@ -374,7 +374,7 @@ export default function Reception() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Conversions</Label>
+                    <Label>DRP/Trial Pack Conversion</Label>
                     <Input
                       type="number"
                       min="0"
@@ -473,7 +473,7 @@ export default function Reception() {
               <div className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Walk-ins</Label>
+                    <Label>Consultations</Label>
                     <Input
                       type="number"
                       min="0"
@@ -497,7 +497,7 @@ export default function Reception() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Conversions</Label>
+                    <Label>DRP/Trial Pack Conversion</Label>
                     <Input
                       type="number"
                       min="0"
