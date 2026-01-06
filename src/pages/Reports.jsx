@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval, startOfWeek, startOfMonth, endOfWeek, endOfMonth } from "date-fns";
 import { FileText, Download, Calendar, BarChart3, Plus, Loader2 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -109,8 +110,78 @@ export default function Reports() {
     createReportMutation.mutate(newReport);
   };
 
-  const handleExport = (exportFormat) => {
-    toast.success(`Exporting as ${exportFormat.toUpperCase()}...`);
+  const handleExport = (reportType) => {
+    try {
+      const wb = XLSX.utils.book_new();
+      
+      // Reception Data
+      const receptionData = filteredReports.map(r => ({
+        Date: r.report_date,
+        Branch: r.branch,
+        Consultations: r.reception?.walk_ins || 0,
+        Appointments: r.reception?.appointments || 0,
+        DRP: r.reception?.drp_conversion || 0,
+        TrialPack: r.reception?.trial_pack_conversion || 0,
+        NoShows: r.reception?.no_shows || 0,
+        Cancellations: r.reception?.cancellations || 0,
+        YouTubeQR: r.reception?.youtube_qr_scans || 0,
+        InstagramQR: r.reception?.instagram_qr_scans || 0,
+        FacebookQR: r.reception?.facebook_qr_scans || 0
+      }));
+      const receptionWS = XLSX.utils.json_to_sheet(receptionData);
+      XLSX.utils.book_append_sheet(wb, receptionWS, "Reception");
+
+      // Customer Support Data
+      const supportData = filteredReports.map(r => ({
+        Date: r.report_date,
+        Branch: r.branch,
+        AnsweredCalls: r.customer_support?.total_answered_calls || 0,
+        Appointments: r.customer_support?.total_appointments || 0,
+        OutboundCalls: r.customer_support?.total_outbound_calls || 0
+      }));
+      const supportWS = XLSX.utils.json_to_sheet(supportData);
+      XLSX.utils.book_append_sheet(wb, supportWS, "Customer Support");
+
+      // Pharmacy Data
+      const pharmacyData = filteredReports.map(r => ({
+        Date: r.report_date,
+        Branch: r.branch,
+        Cash: r.pharmacy?.cash || 0,
+        PaytmSwipe: r.pharmacy?.paytm_swipe || 0,
+        Expenses: r.pharmacy?.expenses || 0,
+        TotalSales: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0),
+        GoogleReviews: r.pharmacy?.google_reviews || 0,
+        PatientIDNotBuying: r.pharmacy?.patient_id_not_buying || "",
+        ReasonsNotBuying: r.pharmacy?.reasons_not_buying || ""
+      }));
+      const pharmacyWS = XLSX.utils.json_to_sheet(pharmacyData);
+      XLSX.utils.book_append_sheet(wb, pharmacyWS, "Pharmacy");
+
+      // Center Manager Data
+      const centerData = filteredReports.map(r => ({
+        Date: r.report_date,
+        Branch: r.branch,
+        Patients: r.center_manager?.number_of_patients || 0,
+        Revenue: r.center_manager?.revenue || 0,
+        ProjectedPatients: r.center_manager?.projected_patients || 0,
+        ProjectedRevenue: r.center_manager?.projected_revenue || 0,
+        Notes: r.center_manager?.operational_notes || ""
+      }));
+      const centerWS = XLSX.utils.json_to_sheet(centerData);
+      XLSX.utils.book_append_sheet(wb, centerWS, "Center Manager");
+
+      // Generate filename
+      const branchName = selectedBranch === "All Branches" ? "All" : selectedBranch;
+      const dateStr = format(new Date(), "yyyy-MM-dd");
+      const filename = `${branchName}_${reportType}_${dateStr}.xlsx`;
+
+      // Download
+      XLSX.writeFile(wb, filename);
+      toast.success("Report exported successfully");
+    } catch (error) {
+      toast.error("Failed to export report");
+      console.error(error);
+    }
   };
 
   return (
@@ -125,81 +196,6 @@ export default function Reports() {
           <div className="flex flex-wrap items-center gap-3">
             <BranchSelector value={selectedBranch} onChange={setSelectedBranch} user={currentUser} />
             <DateRangeSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
-            {currentUser?.department !== "Analyst" && (
-              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Report
-                  </Button>
-                </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Submit Daily Report</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Branch</Label>
-                      <Select value={newReport.branch} onValueChange={(v) => setNewReport({ ...newReport, branch: v })}>
-                        <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
-                        <SelectContent>
-                          {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Date</Label>
-                      <Input type="date" value={newReport.report_date} onChange={(e) => setNewReport({ ...newReport, report_date: e.target.value })} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-3">Reception</h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div><Label className="text-xs">Walk-ins</Label><Input type="number" value={newReport.reception.walk_ins} onChange={(e) => setNewReport({ ...newReport, reception: { ...newReport.reception, walk_ins: parseInt(e.target.value) || 0 } })} /></div>
-                      <div><Label className="text-xs">Appointments</Label><Input type="number" value={newReport.reception.appointments} onChange={(e) => setNewReport({ ...newReport, reception: { ...newReport.reception, appointments: parseInt(e.target.value) || 0 } })} /></div>
-                      <div><Label className="text-xs">Conversions</Label><Input type="number" value={newReport.reception.conversions} onChange={(e) => setNewReport({ ...newReport, reception: { ...newReport.reception, conversions: parseInt(e.target.value) || 0 } })} /></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-3">Customer Support</h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div><Label className="text-xs">Incoming Calls</Label><Input type="number" value={newReport.customer_support.incoming_calls} onChange={(e) => setNewReport({ ...newReport, customer_support: { ...newReport.customer_support, incoming_calls: parseInt(e.target.value) || 0 } })} /></div>
-                      <div><Label className="text-xs">Missed Calls</Label><Input type="number" value={newReport.customer_support.missed_calls} onChange={(e) => setNewReport({ ...newReport, customer_support: { ...newReport.customer_support, missed_calls: parseInt(e.target.value) || 0 } })} /></div>
-                      <div><Label className="text-xs">Resolved</Label><Input type="number" value={newReport.customer_support.resolved} onChange={(e) => setNewReport({ ...newReport, customer_support: { ...newReport.customer_support, resolved: parseInt(e.target.value) || 0 } })} /></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-3">Pharmacy</h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div><Label className="text-xs">Orders</Label><Input type="number" value={newReport.pharmacy.daily_orders} onChange={(e) => setNewReport({ ...newReport, pharmacy: { ...newReport.pharmacy, daily_orders: parseInt(e.target.value) || 0 } })} /></div>
-                      <div><Label className="text-xs">Revenue (₹)</Label><Input type="number" value={newReport.pharmacy.revenue} onChange={(e) => setNewReport({ ...newReport, pharmacy: { ...newReport.pharmacy, revenue: parseInt(e.target.value) || 0 } })} /></div>
-                      <div><Label className="text-xs">Pending</Label><Input type="number" value={newReport.pharmacy.pending_dispatches} onChange={(e) => setNewReport({ ...newReport, pharmacy: { ...newReport.pharmacy, pending_dispatches: parseInt(e.target.value) || 0 } })} /></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-3">Operations</h4>
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div><Label className="text-xs">Staff Present</Label><Input type="number" value={newReport.center_manager.staff_present} onChange={(e) => setNewReport({ ...newReport, center_manager: { ...newReport.center_manager, staff_present: parseInt(e.target.value) || 0 } })} /></div>
-                      <div><Label className="text-xs">Total Staff</Label><Input type="number" value={newReport.center_manager.staff_total} onChange={(e) => setNewReport({ ...newReport, center_manager: { ...newReport.center_manager, staff_total: parseInt(e.target.value) || 0 } })} /></div>
-                    </div>
-                    <div><Label className="text-xs">Notes</Label><Textarea value={newReport.center_manager.operational_notes} onChange={(e) => setNewReport({ ...newReport, center_manager: { ...newReport.center_manager, operational_notes: e.target.value } })} placeholder="Any operational notes..." /></div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                  <Button onClick={handleSubmitReport} disabled={createReportMutation.isPending}>
-                    {createReportMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Submit Report
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            )}
           </div>
         </div>
 
@@ -266,7 +262,7 @@ export default function Reports() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-xs">Ready</Badge>
-                    <Button variant="ghost" size="icon" onClick={() => handleExport("excel")}>
+                    <Button variant="ghost" size="icon" onClick={() => handleExport(report.type)}>
                       <Download className="w-4 h-4" />
                     </Button>
                   </div>

@@ -34,7 +34,8 @@ export default function Reception() {
     reception: {
       walk_ins: 0,
       appointments: 0,
-      conversions: 0,
+      drp_conversion: 0,
+      trial_pack_conversion: 0,
       no_shows: 0,
       cancellations: 0,
       youtube_qr_scans: 0,
@@ -70,7 +71,8 @@ export default function Reception() {
         reception: {
           walk_ins: 0,
           appointments: 0,
-          conversions: 0,
+          drp_conversion: 0,
+          trial_pack_conversion: 0,
           no_shows: 0,
           cancellations: 0,
           youtube_qr_scans: 0,
@@ -118,7 +120,9 @@ export default function Reception() {
   // KPIs
   const totalConsultations = filteredReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0);
   const totalAppointments = filteredReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0);
-  const totalConversions = filteredReports.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0);
+  const totalDrpConversion = filteredReports.reduce((sum, r) => sum + (r.reception?.drp_conversion || 0), 0);
+  const totalTrialPackConversion = filteredReports.reduce((sum, r) => sum + (r.reception?.trial_pack_conversion || 0), 0);
+  const totalConversions = totalDrpConversion + totalTrialPackConversion;
   const totalNoShows = filteredReports.reduce((sum, r) => sum + (r.reception?.no_shows || 0), 0);
   const totalCancellations = filteredReports.reduce((sum, r) => sum + (r.reception?.cancellations || 0), 0);
   const totalYoutubeScans = filteredReports.reduce((sum, r) => sum + (r.reception?.youtube_qr_scans || 0), 0);
@@ -134,11 +138,14 @@ export default function Reception() {
   while (currentDate <= dateRange.to) {
     const dateStr = format(currentDate, "yyyy-MM-dd");
     const dayReports = filteredReports.filter(r => r.report_date === dateStr);
+    const drp = dayReports.reduce((sum, r) => sum + (r.reception?.drp_conversion || 0), 0);
+    const trial = dayReports.reduce((sum, r) => sum + (r.reception?.trial_pack_conversion || 0), 0);
     trendData.push({
       date: format(currentDate, "MMM d"),
       consultations: dayReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
       appointments: dayReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0),
-      conversions: dayReports.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0)
+      drp: drp,
+      trialPack: trial
     });
     currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
   }
@@ -160,7 +167,8 @@ export default function Reception() {
     branch: r.branch,
     consultations: r.reception?.walk_ins || 0,
     appointments: r.reception?.appointments || 0,
-    conversions: r.reception?.conversions || 0,
+    drpConversion: r.reception?.drp_conversion || 0,
+    trialPackConversion: r.reception?.trial_pack_conversion || 0,
     noShows: r.reception?.no_shows || 0,
     cancellations: r.reception?.cancellations || 0,
     youtubeScans: r.reception?.youtube_qr_scans || 0,
@@ -219,10 +227,11 @@ export default function Reception() {
         )}
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
           <KPICard title="Consultations" value={totalConsultations} icon={Users} trend="up" change={8} />
           <KPICard title="Appointments" value={totalAppointments} icon={Calendar} trend="up" change={12} />
-          <KPICard title="DRP/Trial Pack" value={totalConversions} icon={UserCheck} trend="up" change={15} />
+          <KPICard title="DRP" value={totalDrpConversion} icon={UserCheck} trend="up" change={15} />
+          <KPICard title="Trial Pack" value={totalTrialPackConversion} icon={UserCheck} trend="up" change={15} />
           <KPICard title="No-shows" value={totalNoShows} icon={UserX} trend={totalNoShows > 0 ? "down" : "up"} />
           <KPICard title="Conversion Rate" value={`${conversionRate}%`} icon={TrendingUp} trend="up" />
         </div>
@@ -272,7 +281,8 @@ export default function Reception() {
             lines={[
               { dataKey: "consultations", name: "Consultations" },
               { dataKey: "appointments", name: "Appointments" },
-              { dataKey: "conversions", name: "DRP/Trial Pack" }
+              { dataKey: "drp", name: "DRP" },
+              { dataKey: "trialPack", name: "Trial Pack" }
             ]}
           />
           {selectedBranch === "All Branches" && (
@@ -294,7 +304,8 @@ export default function Reception() {
             { header: "Branch", accessor: "branch" },
             { header: "Consultations", accessor: "consultations" },
             { header: "Appointments", accessor: "appointments" },
-            { header: "DRP/Trial Pack", accessor: "conversions" },
+            { header: "DRP", accessor: "drpConversion" },
+            { header: "Trial Pack", accessor: "trialPackConversion" },
             { header: "No-shows", accessor: "noShows" },
             { header: "Cancellations", accessor: "cancellations" },
             { header: "YouTube", accessor: "youtubeScans" },
@@ -374,14 +385,26 @@ export default function Reception() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>DRP/Trial Pack Conversion</Label>
+                    <Label>DRP Conversion</Label>
                     <Input
                       type="number"
                       min="0"
-                      value={newReport.reception.conversions}
+                      value={newReport.reception.drp_conversion}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        reception: { ...newReport.reception, conversions: parseInt(e.target.value) || 0 }
+                        reception: { ...newReport.reception, drp_conversion: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Trial Pack Conversion</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.trial_pack_conversion}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, trial_pack_conversion: parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -497,14 +520,26 @@ export default function Reception() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>DRP/Trial Pack Conversion</Label>
+                    <Label>DRP Conversion</Label>
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.reception?.conversions || 0}
+                      value={editDialog.reception?.drp_conversion || 0}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        reception: { ...editDialog.reception, conversions: parseInt(e.target.value) || 0 }
+                        reception: { ...editDialog.reception, drp_conversion: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Trial Pack Conversion</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.trial_pack_conversion || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, trial_pack_conversion: parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>

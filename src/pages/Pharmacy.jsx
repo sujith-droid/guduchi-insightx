@@ -36,6 +36,7 @@ export default function Pharmacy() {
       paytm_swipe: 0,
       expenses: 0,
       reasons_not_buying: "",
+      patient_id_not_buying: "",
       google_reviews: 0
     }
   });
@@ -69,6 +70,7 @@ export default function Pharmacy() {
           paytm_swipe: 0,
           expenses: 0,
           reasons_not_buying: "",
+          patient_id_not_buying: "",
           google_reviews: 0
         }
       });
@@ -386,6 +388,17 @@ export default function Pharmacy() {
                     />
                   </div>
                   <div className="space-y-2 col-span-2">
+                    <Label>Patient ID (Not Buying)</Label>
+                    <Input
+                      value={newReport.pharmacy.patient_id_not_buying}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        pharmacy: { ...newReport.pharmacy, patient_id_not_buying: e.target.value }
+                      })}
+                      placeholder="Enter patient ID"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
                     <Label>Reasons Not Buying</Label>
                     <Textarea
                       value={newReport.pharmacy.reasons_not_buying}
@@ -393,6 +406,7 @@ export default function Pharmacy() {
                         ...newReport,
                         pharmacy: { ...newReport.pharmacy, reasons_not_buying: e.target.value }
                       })}
+                      placeholder="Enter reasons..."
                     />
                   </div>
                 </div>
@@ -471,6 +485,17 @@ export default function Pharmacy() {
                     />
                   </div>
                   <div className="space-y-2 col-span-2">
+                    <Label>Patient ID (Not Buying)</Label>
+                    <Input
+                      value={editDialog.pharmacy?.patient_id_not_buying || ""}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        pharmacy: { ...editDialog.pharmacy, patient_id_not_buying: e.target.value }
+                      })}
+                      placeholder="Enter patient ID"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
                     <Label>Reasons Not Buying</Label>
                     <Textarea
                       value={editDialog.pharmacy?.reasons_not_buying || ""}
@@ -478,6 +503,7 @@ export default function Pharmacy() {
                         ...editDialog,
                         pharmacy: { ...editDialog.pharmacy, reasons_not_buying: e.target.value }
                       })}
+                      placeholder="Enter reasons..."
                     />
                   </div>
                 </div>
