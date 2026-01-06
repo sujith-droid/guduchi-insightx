@@ -46,7 +46,7 @@ export default function CenterManager() {
   useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
-      if (user.department !== "Analyst" && user.department !== "CEO" && user.branch) {
+      if (user.department !== "Analyst" && user.department !== "CEO" && user.role !== "admin" && user.branch) {
         setSelectedBranch(user.branch);
       }
     }).catch(() => {});
@@ -288,7 +288,7 @@ export default function CenterManager() {
               <Plus className="w-4 h-4 mr-2" />
               Add Daily Report
             </Button>
-            {currentUser?.department === "Analyst" || currentUser?.department === "CEO" ? (
+            {currentUser?.department === "Analyst" || currentUser?.department === "CEO" || currentUser?.role === "admin" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
               <div className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700">
@@ -299,8 +299,8 @@ export default function CenterManager() {
           </div>
         </div>
 
-        {/* Quick Branch Filters for Analyst & CEO */}
-        {(currentUser?.department === "Analyst" || currentUser?.department === "CEO") && (
+        {/* Quick Branch Filters for Analyst, CEO & Admin */}
+        {(currentUser?.department === "Analyst" || currentUser?.department === "CEO" || currentUser?.role === "admin") && (
           <div className="flex flex-wrap gap-2 mb-6">
             <Button
               variant={selectedBranch === "All Branches" ? "default" : "outline"}

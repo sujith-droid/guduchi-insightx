@@ -42,8 +42,8 @@ export default function Marketing() {
   useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
-      // Digital Marketing and Analyst can see all branches
-      if (user.department !== "Analyst" && user.department !== "Digital Marketing" && user.branch) {
+      // Digital Marketing, Analyst, CEO and Admin can see all branches
+      if (user.department !== "Analyst" && user.department !== "Digital Marketing" && user.department !== "CEO" && user.role !== "admin" && user.branch) {
         setSelectedBranch(user.branch);
       }
     }).catch(() => {});
@@ -170,7 +170,7 @@ export default function Marketing() {
                 Add Report
               </Button>
             )}
-            {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO" ? (
+            {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO" || currentUser?.role === "admin" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
             ) : (
               <div className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700">
@@ -181,8 +181,8 @@ export default function Marketing() {
           </div>
         </div>
 
-        {/* Quick Branch Filters for Analyst, Digital Marketing & CEO */}
-        {(currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO") && (
+        {/* Quick Branch Filters for Analyst, Digital Marketing, CEO & Admin */}
+        {(currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO" || currentUser?.role === "admin") && (
           <div className="flex flex-wrap gap-2 mb-6">
             <Button
               variant={selectedBranch === "All Branches" ? "default" : "outline"}

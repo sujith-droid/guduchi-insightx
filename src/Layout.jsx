@@ -45,7 +45,7 @@ const NAV_ITEMS = [
 
 const canAccessPage = (item, user) => {
   if (item.alwaysShow) return true;
-  if (user?.department === "CEO") return true;
+  if (user?.department === "CEO" || user?.role === "admin") return true;
   if (item.adminOnly) return user?.role === "admin";
   if (item.analystAdminOnly) {
     return user?.role === "admin" || user?.department === "Analyst";
