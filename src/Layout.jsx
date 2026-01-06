@@ -104,7 +104,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
               <Building2 className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-slate-900">BranchIQ</span>
+            <span className="font-semibold text-slate-900">InsightX</span>
           </div>
         </div>
         <DropdownMenu>
@@ -142,7 +142,7 @@ export default function Layout({ children, currentPageName }) {
             <Building2 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="font-semibold text-slate-900">BranchIQ</span>
+            <span className="font-semibold text-slate-900">InsightX</span>
             <p className="text-xs text-slate-400">Analytics Hub</p>
           </div>
         </div>
