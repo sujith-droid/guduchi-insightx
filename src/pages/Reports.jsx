@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval, startOfWeek, startOfMonth, endOfWeek, endOfMonth } from "date-fns";
 import { FileText, Download, Calendar, BarChart3, Plus, Loader2 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -110,8 +109,11 @@ export default function Reports() {
     createReportMutation.mutate(newReport);
   };
 
-  const handleExport = (reportType) => {
+  const handleExport = async (reportType) => {
     try {
+      // Dynamically import xlsx only when needed
+      const XLSX = await import('xlsx');
+      
       const wb = XLSX.utils.book_new();
       
       // Reception Data
