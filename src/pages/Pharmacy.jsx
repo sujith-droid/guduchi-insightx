@@ -118,7 +118,6 @@ export default function Pharmacy() {
   const totalGoogleReviews = filteredReports.reduce((sum, r) => sum + (r.pharmacy?.google_reviews || 0), 0);
   
   const totalSales = totalCash + totalPaytmSwipe;
-  const difference = totalSales - totalExpenses;
 
   // Trend data
   const trendData = [];
@@ -155,7 +154,6 @@ export default function Pharmacy() {
     const paytmSwipe = r.pharmacy?.paytm_swipe || 0;
     const expenses = r.pharmacy?.expenses || 0;
     const sales = cash + paytmSwipe;
-    const diff = sales - expenses;
     
     return {
       id: r.id,
@@ -166,7 +164,6 @@ export default function Pharmacy() {
       paytmSwipe,
       expenses,
       totalSales: sales,
-      difference: diff,
       googleReviews: r.pharmacy?.google_reviews || 0,
       reasonsNotBuying: r.pharmacy?.reasons_not_buying || ""
     };
@@ -223,7 +220,7 @@ export default function Pharmacy() {
         )}
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <KPICard title="Cash" value={`₹${(totalCash / 1000).toFixed(1)}K`} icon={DollarSign} trend="up" />
           <KPICard title="Paytm/Swipe" value={`₹${(totalPaytmSwipe / 1000).toFixed(1)}K`} icon={CreditCard} trend="up" />
           <KPICard title="Expenses" value={`₹${(totalExpenses / 1000).toFixed(1)}K`} icon={TrendingDown} />
@@ -232,12 +229,6 @@ export default function Pharmacy() {
             value={`₹${(totalSales / 1000).toFixed(1)}K`} 
             icon={DollarSign} 
             trend="up" 
-          />
-          <KPICard 
-            title="Difference" 
-            value={`₹${(difference / 1000).toFixed(1)}K`} 
-            icon={DollarSign}
-            trend={difference >= 0 ? "up" : "down"}
           />
           <KPICard title="Google Reviews" value={totalGoogleReviews} icon={Star} trend="up" />
         </div>
@@ -273,15 +264,6 @@ export default function Pharmacy() {
             { header: "Paytm/Swipe", accessor: "paytmSwipe", render: (val) => `₹${val.toLocaleString()}` },
             { header: "Expenses", accessor: "expenses", render: (val) => `₹${val.toLocaleString()}` },
             { header: "Total Sales", accessor: "totalSales", render: (val) => `₹${val.toLocaleString()}` },
-            { 
-              header: "Difference", 
-              accessor: "difference", 
-              render: (val) => (
-                <span className={val >= 0 ? "text-emerald-600 font-medium" : "text-red-600 font-medium"}>
-                  ₹{val.toLocaleString()}
-                </span>
-              )
-            },
             { header: "Reviews", accessor: "googleReviews" },
             { 
               header: "Not Buying Reason", 
