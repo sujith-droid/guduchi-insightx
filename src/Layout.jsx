@@ -32,6 +32,7 @@ import AccessDenied from "./components/AccessDenied";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard", departments: ["Analyst"], analystAdminOnly: true },
+  { name: "Online Consultation", icon: Users, page: "OnlineConsultation", departments: ["Analyst", "Center Manager"], branchSpecific: "Online Consultation" },
   { name: "Reception", icon: Users, page: "Reception", departments: ["Analyst", "Reception"] },
   { name: "Customer Support", icon: Phone, page: "CustomerSupport", departments: ["Analyst", "Customer Support"] },
   { name: "Pharmacy", icon: Package, page: "Pharmacy", departments: ["Analyst", "Pharmacy"] },
@@ -50,6 +51,7 @@ const canAccessPage = (item, user) => {
   if (item.analystAdminOnly) {
     return user?.role === "admin" || user?.department === "Analyst";
   }
+  if (item.branchSpecific && user?.branch !== item.branchSpecific) return false;
   if (!user?.department || !user?.branch) return false;
   if (!item.departments) return true;
   return item.departments.includes(user.department);
