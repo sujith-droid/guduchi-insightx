@@ -18,7 +18,7 @@ import BranchSelector from "@/components/dashboard/BranchSelector";
 import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
 import ReportTable from "@/components/dashboard/ReportTable";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Online Consultation"];
+const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
 
 export default function Reports() {
   const [currentUser, setCurrentUser] = useState(null);
