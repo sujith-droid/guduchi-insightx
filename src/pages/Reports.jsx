@@ -83,7 +83,7 @@ export default function Reports() {
       conversions: reports.reduce((sum, r) => sum + ((r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0)), 0),
       calls: reports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0),
       patients: reports.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0),
-      revenue: reports.reduce((sum, r) => sum + (r.center_manager?.revenue || 0), 0),
+      revenue: reports.reduce((sum, r) => sum + ((r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)), 0),
       leads: mktReports.reduce((sum, r) => sum + ((r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0)), 0),
       pharmacySales: reports.reduce((sum, r) => sum + ((r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)), 0),
       googleReviews: reports.reduce((sum, r) => sum + (r.pharmacy?.google_reviews || 0), 0)
@@ -316,7 +316,7 @@ export default function Reports() {
             conversions: (r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0),
             calls: r.customer_support?.total_answered_calls || 0,
             patients: r.center_manager?.number_of_patients || 0,
-            revenue: r.center_manager?.revenue || 0,
+            revenue: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0),
             pharmacySales: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)
           })).sort((a, b) => new Date(b.date) - new Date(a.date))}
           columns={[
