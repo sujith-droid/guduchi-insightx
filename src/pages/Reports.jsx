@@ -239,7 +239,7 @@ export default function Reports() {
             <CardTitle className="text-base font-semibold text-slate-800">Period Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
               <div className="text-center p-3 bg-slate-50 rounded-lg">
                 <p className="text-2xl font-semibold text-slate-900">{currentSummary.walkIns}</p>
                 <p className="text-xs text-slate-500">Walk-ins</p>
@@ -251,10 +251,6 @@ export default function Reports() {
               <div className="text-center p-3 bg-slate-50 rounded-lg">
                 <p className="text-2xl font-semibold text-slate-900">{currentSummary.calls}</p>
                 <p className="text-xs text-slate-500">Answered Calls</p>
-              </div>
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.patients}</p>
-                <p className="text-xs text-slate-500">Patients</p>
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
                 <p className="text-2xl font-semibold text-slate-900">₹{(currentSummary.revenue / 1000).toFixed(1)}K</p>
@@ -315,7 +311,6 @@ export default function Reports() {
             walkIns: r.reception?.walk_ins || 0,
             conversions: (r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0),
             calls: r.customer_support?.total_answered_calls || 0,
-            patients: r.center_manager?.number_of_patients || 0,
             revenue: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0),
             pharmacySales: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)
           })).sort((a, b) => new Date(b.date) - new Date(a.date))}
@@ -325,7 +320,6 @@ export default function Reports() {
             { header: "Walk-ins", accessor: "walkIns" },
             { header: "Conversions", accessor: "conversions" },
             { header: "Calls", accessor: "calls" },
-            { header: "Patients", accessor: "patients" },
             { header: "Revenue", accessor: "revenue", render: (val) => `₹${val.toLocaleString()}` },
             { header: "Pharmacy", accessor: "pharmacySales", render: (val) => `₹${val.toLocaleString()}` }
           ]}
