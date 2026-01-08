@@ -70,8 +70,7 @@ export default function CenterManager() {
       );
       
       if (existing) {
-        // Update existing report instead of creating duplicate
-        return await base44.entities.BranchReport.update(existing.id, data);
+        throw new Error("A report already exists for this date and branch. Please edit the existing report instead.");
       }
       
       return await base44.entities.BranchReport.create(data);
@@ -91,8 +90,8 @@ export default function CenterManager() {
       });
       toast.success("Report saved successfully");
     },
-    onError: () => {
-      toast.error("Failed to save report");
+    onError: (error) => {
+      toast.error(error.message || "Failed to save report");
     }
   });
 
