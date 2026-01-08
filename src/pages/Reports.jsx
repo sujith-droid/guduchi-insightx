@@ -79,7 +79,7 @@ export default function Reports() {
   // Generate summary reports
   const generateSummary = (reports, mktReports) => {
     return {
-      walkIns: reports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
+      walkIns: reports.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0),
       conversions: reports.reduce((sum, r) => sum + ((r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0)), 0),
       calls: reports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0),
       patients: reports.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0),
@@ -308,7 +308,7 @@ export default function Reports() {
           data={filteredReports.map(r => ({
             date: format(parseISO(r.report_date), "MMM d, yyyy"),
             branch: r.branch,
-            walkIns: r.reception?.walk_ins || 0,
+            walkIns: r.center_manager?.number_of_patients || 0,
             conversions: (r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0),
             calls: r.customer_support?.total_answered_calls || 0,
             revenue: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0),
