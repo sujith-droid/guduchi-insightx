@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp, QrCode, Edit, Plus, Trash2 } from "lucide-react";
+import { Users, Calendar, UserCheck, UserX, XCircle, TrendingUp, QrCode, Edit, Plus, Trash2, DollarSign, Monitor } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,9 @@ export default function Reception() {
       cancellations: 0,
       youtube_qr_scans: 0,
       instagram_qr_scans: 0,
-      facebook_qr_scans: 0
+      facebook_qr_scans: 0,
+      revenue: 0,
+      online_consultation_walkins: 0
     }
   });
 
@@ -77,7 +79,9 @@ export default function Reception() {
           cancellations: 0,
           youtube_qr_scans: 0,
           instagram_qr_scans: 0,
-          facebook_qr_scans: 0
+          facebook_qr_scans: 0,
+          revenue: 0,
+          online_consultation_walkins: 0
         }
       });
       toast.success("Report added successfully");
@@ -128,6 +132,8 @@ export default function Reception() {
   const totalYoutubeScans = filteredReports.reduce((sum, r) => sum + (r.reception?.youtube_qr_scans || 0), 0);
   const totalInstagramScans = filteredReports.reduce((sum, r) => sum + (r.reception?.instagram_qr_scans || 0), 0);
   const totalFacebookScans = filteredReports.reduce((sum, r) => sum + (r.reception?.facebook_qr_scans || 0), 0);
+  const totalRevenue = filteredReports.reduce((sum, r) => sum + (r.reception?.revenue || 0), 0);
+  const totalOnlineWalkins = filteredReports.reduce((sum, r) => sum + (r.reception?.online_consultation_walkins || 0), 0);
 
   const conversionRate = totalConsultations > 0 ? ((totalConversions / totalConsultations) * 100).toFixed(1) : 0;
   const noShowRate = totalAppointments > 0 ? ((totalNoShows / totalAppointments) * 100).toFixed(1) : 0;
@@ -227,13 +233,18 @@ export default function Reception() {
         )}
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard title="Consultations" value={totalConsultations} icon={Users} trend="up" change={8} />
           <KPICard title="Appointments" value={totalAppointments} icon={Calendar} trend="up" change={12} />
           <KPICard title="DRP" value={totalDrpConversion} icon={UserCheck} trend="up" change={15} />
           <KPICard title="Trial Pack" value={totalTrialPackConversion} icon={UserCheck} trend="up" change={15} />
+        </div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <KPICard title="No-shows" value={totalNoShows} icon={UserX} trend={totalNoShows > 0 ? "down" : "up"} />
           <KPICard title="Conversion Rate" value={`${conversionRate}%`} icon={TrendingUp} trend="up" />
+          <KPICard title="Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon={DollarSign} />
+          <KPICard title="Online Walkins" value={totalOnlineWalkins} icon={Monitor} />
         </div>
 
         {/* QR Code Scans */}
@@ -468,6 +479,30 @@ export default function Reception() {
                       })}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Revenue (₹)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.revenue}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, revenue: parseFloat(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Online Consultation Walk-ins</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.online_consultation_walkins}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, online_consultation_walkins: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" onClick={() => setAddDialog(false)} className="flex-1">
@@ -600,6 +635,30 @@ export default function Reception() {
                       onChange={(e) => setEditDialog({
                         ...editDialog,
                         reception: { ...editDialog.reception, facebook_qr_scans: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Revenue (₹)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.revenue || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, revenue: parseFloat(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Online Consultation Walk-ins</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.online_consultation_walkins || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, online_consultation_walkins: parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
