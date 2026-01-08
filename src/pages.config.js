@@ -3,12 +3,12 @@ import CustomerSupport from './pages/CustomerSupport';
 import Dashboard from './pages/Dashboard';
 import Help from './pages/Help';
 import Marketing from './pages/Marketing';
-import OnlineConsultation from './pages/OnlineConsultation';
 import Pharmacy from './pages/Pharmacy';
 import Reception from './pages/Reception';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
 import UserManagement from './pages/UserManagement';
+import Settings from './pages/Settings';
+import Reports from './pages/Reports';
+import OnlineConsultation from './pages/OnlineConsultation';
 import __Layout from './Layout.jsx';
 
 
@@ -18,12 +18,12 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Help": Help,
     "Marketing": Marketing,
-    "OnlineConsultation": OnlineConsultation,
     "Pharmacy": Pharmacy,
     "Reception": Reception,
-    "Reports": Reports,
-    "Settings": Settings,
     "UserManagement": UserManagement,
+    "Settings": Settings,
+    "Reports": Reports,
+    "OnlineConsultation": OnlineConsultation,
 }
 
 export const pagesConfig = {
