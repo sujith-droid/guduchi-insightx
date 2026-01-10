@@ -66,6 +66,15 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+        
+        // Redirect to first accessible page if on root or inaccessible page
+        const currentPath = window.location.pathname;
+        if (currentPath === "/" || currentPath === "") {
+          const firstAccessiblePage = NAV_ITEMS.find(item => canAccessPage(item, user));
+          if (firstAccessiblePage) {
+            window.location.href = createPageUrl(firstAccessiblePage.page);
+          }
+        }
       } catch (e) {
         // Not logged in
       }
