@@ -197,32 +197,66 @@ export default function CenterManager() {
     const data = filteredReports.filter(r => r.branch === branch);
     const projection = getProjection(branch);
     
-    let patients = 0;
-    let revenue = 0;
-    let projPatients = 0;
-    let projRevenue = 0;
-
-    data.forEach(r => {
-      const days = r.center_manager?.tracking_days || 30;
-      patients += r.center_manager?.number_of_patients || 0;
-      revenue += r.center_manager?.revenue || 0;
-      
-      if (projection) {
-        projPatients += (projection.projected_patients / 30) * days;
-        projRevenue += (projection.projected_revenue / 30) * days;
-      }
-    });
+    // Calculate cumulative values from daily reports
+    const cumulativePatients = data.reduce((sum, r) => sum + (r.center_manager?.number_of_patients || 0), 0);
+    const cumulativeRevenue = data.reduce((sum, r) => sum + (r.center_manager?.revenue || 0), 0);
     
-    const patDev = projPatients > 0 ? (((patients - projPatients) / projPatients) * 100).toFixed(1) : 0;
-    const revDev = projRevenue > 0 ? (((revenue - projRevenue) / projRevenue) * 100).toFixed(1) : 0;
+    // Get current day of the month
+    const currentDay = new Date().getDate();
+    const totalDaysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+    
+    // Calculate expected values till today
+    const expectedRevenueTillToday = projection 
+      ? (projection.projected_revenue / totalDaysInMonth) * currentDay 
+      : 0;
+    const expectedPatientsTillToday = projection 
+      ? (projection.projected_patients / totalDaysInMonth) * currentDay 
+      : 0;
+    
+    // Calculate deviations
+    const revenueDeviationValue = cumulativeRevenue - expectedRevenueTillToday;
+    const revenueDeviationPercentage = expectedRevenueTillToday > 0 
+      ? (revenueDeviationValue / expectedRevenueTillToday) * 100 
+      : 0;
+    
+    const patientDeviationValue = cumulativePatients - expectedPatientsTillToday;
+    const patientDeviationPercentage = expectedPatientsTillToday > 0 
+      ? (patientDeviationValue / expectedPatientsTillToday) * 100 
+      : 0;
+    
+    // Calculate remaining days and required daily metrics
+    const remainingDays = totalDaysInMonth - currentDay;
+    const requiredDailyRevenue = remainingDays > 0 && projection
+      ? (projection.projected_revenue - cumulativeRevenue) / remainingDays
+      : 0;
+    const requiredDailyPatients = remainingDays > 0 && projection
+      ? (projection.projected_patients - cumulativePatients) / remainingDays
+      : 0;
+    
+    // Determine status
+    let status = "good";
+    if (revenueDeviationPercentage < -5 || patientDeviationPercentage < -5) {
+      status = "behind";
+    } else if (revenueDeviationPercentage >= 0 && patientDeviationPercentage >= 0) {
+      status = "ahead";
+    } else if (revenueDeviationPercentage >= -5 && patientDeviationPercentage >= -5) {
+      status = "ontrack";
+    }
     
     return {
       branch,
-      patients,
-      revenue,
-      patientDeviation: patDev,
-      revenueDeviation: revDev,
-      status: parseFloat(patDev) >= 0 && parseFloat(revDev) >= 0 ? "good" : "warning"
+      cumulativePatients,
+      cumulativeRevenue,
+      expectedPatientsTillToday: expectedPatientsTillToday.toFixed(0),
+      expectedRevenueTillToday: expectedRevenueTillToday.toFixed(0),
+      patientDeviationValue: patientDeviationValue.toFixed(0),
+      patientDeviationPercentage: patientDeviationPercentage.toFixed(1),
+      revenueDeviationValue: revenueDeviationValue.toFixed(0),
+      revenueDeviationPercentage: revenueDeviationPercentage.toFixed(1),
+      remainingDays,
+      requiredDailyRevenue: requiredDailyRevenue.toFixed(0),
+      requiredDailyPatients: requiredDailyPatients.toFixed(1),
+      status
     };
   });
 
@@ -358,7 +392,7 @@ export default function CenterManager() {
         {selectedBranch === "All Branches" && (
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Branch Performance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {branchSummaries.map(branch => (
                 <Card key={branch.branch} className="border-0 shadow-sm hover:shadow-md transition-all">
                   <CardHeader className="pb-2">
@@ -367,32 +401,67 @@ export default function CenterManager() {
                         <Building2 className="w-4 h-4 text-slate-400" />
                         {branch.branch}
                       </CardTitle>
-                      <Badge variant="secondary" className={branch.status === "good" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}>
-                        {branch.status === "good" ? "On Track" : "Below Target"}
+                      <Badge variant="secondary" className={
+                        branch.status === "ahead" ? "bg-emerald-50 text-emerald-700" : 
+                        branch.status === "ontrack" ? "bg-blue-50 text-blue-700" : 
+                        "bg-red-50 text-red-700"
+                      }>
+                        {branch.status === "ahead" ? "Ahead" : branch.status === "ontrack" ? "On Track" : "Behind"}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xl font-semibold text-slate-900">{branch.patients}</p>
-                        <p className="text-xs text-slate-500">Patients</p>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
+                        <div>
+                          <p className="text-sm text-slate-500">Cumulative Revenue</p>
+                          <p className="text-lg font-semibold text-slate-900">₹{(branch.cumulativeRevenue / 1000).toFixed(1)}K</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500">Expected Revenue</p>
+                          <p className="text-lg font-semibold text-slate-600">₹{(branch.expectedRevenueTillToday / 1000).toFixed(1)}K</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xl font-semibold text-slate-900">₹{(branch.revenue / 1000).toFixed(1)}K</p>
-                        <p className="text-xs text-slate-500">Revenue</p>
+                      
+                      <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
+                        <div>
+                          <p className="text-sm text-slate-500">Revenue Deviation</p>
+                          <p className={`text-lg font-semibold ${parseFloat(branch.revenueDeviationPercentage) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            ₹{(branch.revenueDeviationValue / 1000).toFixed(1)}K ({branch.revenueDeviationPercentage}%)
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500">Required Daily</p>
+                          <p className="text-lg font-semibold text-indigo-600">₹{(branch.requiredDailyRevenue / 1000).toFixed(1)}K/day</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className={`text-xl font-semibold ${parseFloat(branch.patientDeviation) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {branch.patientDeviation}%
-                        </p>
-                        <p className="text-xs text-slate-500">Patient Dev.</p>
+                      
+                      <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
+                        <div>
+                          <p className="text-sm text-slate-500">Cumulative Patients</p>
+                          <p className="text-lg font-semibold text-slate-900">{branch.cumulativePatients}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500">Expected Patients</p>
+                          <p className="text-lg font-semibold text-slate-600">{branch.expectedPatientsTillToday}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className={`text-xl font-semibold ${parseFloat(branch.revenueDeviation) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {branch.revenueDeviation}%
-                        </p>
-                        <p className="text-xs text-slate-500">Revenue Dev.</p>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-sm text-slate-500">Patient Deviation</p>
+                          <p className={`text-lg font-semibold ${parseFloat(branch.patientDeviationPercentage) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {branch.patientDeviationValue} ({branch.patientDeviationPercentage}%)
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500">Required Daily</p>
+                          <p className="text-lg font-semibold text-indigo-600">{branch.requiredDailyPatients}/day</p>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 mt-2 border-t border-slate-100">
+                        <p className="text-xs text-slate-500">Remaining Days: <span className="font-semibold text-slate-700">{branch.remainingDays}</span></p>
                       </div>
                     </div>
                   </CardContent>
