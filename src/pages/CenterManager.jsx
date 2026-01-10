@@ -389,11 +389,10 @@ export default function CenterManager() {
         </div>
 
         {/* Branch Summaries */}
-        {selectedBranch === "All Branches" && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Branch Performance</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {branchSummaries.map(branch => (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Branch Performance</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {branchSummaries.filter(b => selectedBranch === "All Branches" || b.branch === selectedBranch).map(branch => (
                 <Card key={branch.branch} className="border-0 shadow-sm hover:shadow-md transition-all">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
@@ -468,8 +467,7 @@ export default function CenterManager() {
                 </Card>
               ))}
             </div>
-          </div>
-        )}
+        </div>
 
         {/* Table */}
         <ReportTable
