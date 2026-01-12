@@ -32,7 +32,8 @@ export default function Reception() {
     report_date: format(new Date(), "yyyy-MM-dd"),
     branch: "",
     reception: {
-      walk_ins: 0,
+      new_patients: 0,
+      old_patients: 0,
       appointments: 0,
       no_shows: 0,
       youtube_qr_scans: 0,
@@ -66,7 +67,8 @@ export default function Reception() {
         report_date: format(new Date(), "yyyy-MM-dd"),
         branch: "",
         reception: {
-          walk_ins: 0,
+          new_patients: 0,
+          old_patients: 0,
           appointments: 0,
           no_shows: 0,
           youtube_qr_scans: 0,
@@ -112,7 +114,9 @@ export default function Reception() {
   });
 
   // KPIs
-  const totalConsultations = filteredReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0);
+  const totalNewPatients = filteredReports.reduce((sum, r) => sum + (r.reception?.new_patients || 0), 0);
+  const totalOldPatients = filteredReports.reduce((sum, r) => sum + (r.reception?.old_patients || 0), 0);
+  const totalConsultations = totalNewPatients + totalOldPatients;
   const totalAppointments = filteredReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0);
   const totalNoShows = filteredReports.reduce((sum, r) => sum + (r.reception?.no_shows || 0), 0);
   const totalYoutubeScans = filteredReports.reduce((sum, r) => sum + (r.reception?.youtube_qr_scans || 0), 0);
@@ -127,9 +131,13 @@ export default function Reception() {
   while (currentDate <= dateRange.to) {
     const dateStr = format(currentDate, "yyyy-MM-dd");
     const dayReports = filteredReports.filter(r => r.report_date === dateStr);
+    const newPat = dayReports.reduce((sum, r) => sum + (r.reception?.new_patients || 0), 0);
+    const oldPat = dayReports.reduce((sum, r) => sum + (r.reception?.old_patients || 0), 0);
     trendData.push({
       date: format(currentDate, "MMM d"),
-      consultations: dayReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
+      newPatients: newPat,
+      oldPatients: oldPat,
+      consultations: newPat + oldPat,
       appointments: dayReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0),
       noShows: dayReports.reduce((sum, r) => sum + (r.reception?.no_shows || 0), 0)
     });
@@ -139,9 +147,11 @@ export default function Reception() {
   // Branch comparison
   const branchData = BRANCHES.map(branch => {
     const data = filteredReports.filter(r => r.branch === branch);
+    const newPat = data.reduce((sum, r) => sum + (r.reception?.new_patients || 0), 0);
+    const oldPat = data.reduce((sum, r) => sum + (r.reception?.old_patients || 0), 0);
     return {
       branch,
-      value: data.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0)
+      value: newPat + oldPat
     };
   });
 
@@ -151,7 +161,9 @@ export default function Reception() {
     report: r,
     date: format(parseISO(r.report_date), "MMM d, yyyy"),
     branch: r.branch,
-    consultations: r.reception?.walk_ins || 0,
+    newPatients: r.reception?.new_patients || 0,
+    oldPatients: r.reception?.old_patients || 0,
+    consultations: (r.reception?.new_patients || 0) + (r.reception?.old_patients || 0),
     appointments: r.reception?.appointments || 0,
     noShows: r.reception?.no_shows || 0,
     youtubeScans: r.reception?.youtube_qr_scans || 0,
@@ -210,11 +222,12 @@ export default function Reception() {
         )}
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <KPICard title="Consultations" value={totalConsultations} icon={Users} trend="up" change={8} />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <KPICard title="Total Consultations" value={totalConsultations} icon={Users} trend="up" change={8} />
+          <KPICard title="New Patients" value={totalNewPatients} icon={UserCheck} trend="up" />
+          <KPICard title="Old Patients" value={totalOldPatients} icon={Users} trend="up" />
           <KPICard title="Appointments" value={totalAppointments} icon={Calendar} trend="up" change={12} />
           <KPICard title="No-shows" value={totalNoShows} icon={UserX} trend={totalNoShows > 0 ? "down" : "up"} />
-          <KPICard title="No-show Rate" value={`${noShowRate}%`} icon={TrendingUp} trend={noShowRate > 10 ? "down" : "up"} />
         </div>
 
         {/* QR Code Scans */}
@@ -260,9 +273,9 @@ export default function Reception() {
             title="Daily Trend"
             data={trendData}
             lines={[
-              { dataKey: "consultations", name: "Consultations" },
-              { dataKey: "appointments", name: "Appointments" },
-              { dataKey: "noShows", name: "No-shows" }
+              { dataKey: "newPatients", name: "New Patients" },
+              { dataKey: "oldPatients", name: "Old Patients" },
+              { dataKey: "appointments", name: "Appointments" }
             ]}
           />
           {selectedBranch === "All Branches" && (
@@ -282,7 +295,9 @@ export default function Reception() {
           columns={[
             { header: "Date", accessor: "date" },
             { header: "Branch", accessor: "branch" },
-            { header: "Consultations", accessor: "consultations" },
+            { header: "New Patients", accessor: "newPatients" },
+            { header: "Old Patients", accessor: "oldPatients" },
+            { header: "Total", accessor: "consultations" },
             { header: "Appointments", accessor: "appointments" },
             { header: "No-shows", accessor: "noShows" },
             { header: "YouTube", accessor: "youtubeScans" },
@@ -338,14 +353,26 @@ export default function Reception() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Consultations</Label>
+                    <Label>New Patients</Label>
                     <Input
                       type="number"
                       min="0"
-                      value={newReport.reception.walk_ins}
+                      value={newReport.reception.new_patients}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        reception: { ...newReport.reception, walk_ins: parseInt(e.target.value) || 0 }
+                        reception: { ...newReport.reception, new_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Old Patients</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.reception.old_patients}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        reception: { ...newReport.reception, old_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -357,7 +384,7 @@ export default function Reception() {
                       value={newReport.reception.appointments}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        reception: { ...newReport.reception, appointments: parseInt(e.target.value) || 0 }
+                        reception: { ...newReport.reception, appointments: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -369,7 +396,7 @@ export default function Reception() {
                       value={newReport.reception.no_shows}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        reception: { ...newReport.reception, no_shows: parseInt(e.target.value) || 0 }
+                        reception: { ...newReport.reception, no_shows: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -381,7 +408,7 @@ export default function Reception() {
                       value={newReport.reception.youtube_qr_scans}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        reception: { ...newReport.reception, youtube_qr_scans: parseInt(e.target.value) || 0 }
+                        reception: { ...newReport.reception, youtube_qr_scans: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -393,7 +420,7 @@ export default function Reception() {
                       value={newReport.reception.instagram_qr_scans}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        reception: { ...newReport.reception, instagram_qr_scans: parseInt(e.target.value) || 0 }
+                        reception: { ...newReport.reception, instagram_qr_scans: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -405,7 +432,7 @@ export default function Reception() {
                       value={newReport.reception.facebook_qr_scans}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        reception: { ...newReport.reception, facebook_qr_scans: parseInt(e.target.value) || 0 }
+                        reception: { ...newReport.reception, facebook_qr_scans: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -437,14 +464,26 @@ export default function Reception() {
               <div className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Consultations</Label>
+                    <Label>New Patients</Label>
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.reception?.walk_ins || 0}
+                      value={editDialog.reception?.new_patients ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        reception: { ...editDialog.reception, walk_ins: parseInt(e.target.value) || 0 }
+                        reception: { ...editDialog.reception, new_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Old Patients</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.reception?.old_patients ?? ''}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        reception: { ...editDialog.reception, old_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -453,10 +492,10 @@ export default function Reception() {
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.reception?.appointments || 0}
+                      value={editDialog.reception?.appointments ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        reception: { ...editDialog.reception, appointments: parseInt(e.target.value) || 0 }
+                        reception: { ...editDialog.reception, appointments: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -465,10 +504,10 @@ export default function Reception() {
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.reception?.no_shows || 0}
+                      value={editDialog.reception?.no_shows ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        reception: { ...editDialog.reception, no_shows: parseInt(e.target.value) || 0 }
+                        reception: { ...editDialog.reception, no_shows: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -477,10 +516,10 @@ export default function Reception() {
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.reception?.youtube_qr_scans || 0}
+                      value={editDialog.reception?.youtube_qr_scans ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        reception: { ...editDialog.reception, youtube_qr_scans: parseInt(e.target.value) || 0 }
+                        reception: { ...editDialog.reception, youtube_qr_scans: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -489,10 +528,10 @@ export default function Reception() {
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.reception?.instagram_qr_scans || 0}
+                      value={editDialog.reception?.instagram_qr_scans ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        reception: { ...editDialog.reception, instagram_qr_scans: parseInt(e.target.value) || 0 }
+                        reception: { ...editDialog.reception, instagram_qr_scans: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -501,10 +540,10 @@ export default function Reception() {
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.reception?.facebook_qr_scans || 0}
+                      value={editDialog.reception?.facebook_qr_scans ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        reception: { ...editDialog.reception, facebook_qr_scans: parseInt(e.target.value) || 0 }
+                        reception: { ...editDialog.reception, facebook_qr_scans: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
