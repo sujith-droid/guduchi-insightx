@@ -408,6 +408,10 @@ export default function Reception() {
                       })}
                     />
                   </div>
+                  
+                  <div className="col-span-2 pt-3 pb-2 border-t border-slate-200">
+                    <Label className="text-sm font-semibold text-slate-700">QR Code Scans</Label>
+                  </div>
                   <div className="space-y-2">
                     <Label>YouTube QR</Label>
                     <Input
