@@ -24,17 +24,20 @@ const departments = [
       {
         title: "Navigate to Reception Page",
         description: "Click on 'Reception' in the sidebar menu to access the reception dashboard.",
-        icon: Users
+        icon: Users,
+        screenshot: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&h=500&fit=crop"
       },
       {
         title: "Click 'Add Report'",
         description: "Click the 'Add Report' button in the top right corner of the page.",
-        icon: Plus
+        icon: Plus,
+        screenshot: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop"
       },
       {
         title: "Fill in Today's Data",
         description: "Enter the following information for today's date:\n• Walk-ins: Number of visitors who walked in\n• Appointments: Number of scheduled appointments\n• Conversions: Number of successful conversions\n• No Shows: Appointments that didn't show up\n• Cancellations: Cancelled appointments\n• QR Scans: YouTube, Instagram, and Facebook QR code scans",
-        icon: Edit
+        icon: Edit,
+        screenshot: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop"
       },
       {
         title: "Add Notes (Optional)",
@@ -44,7 +47,8 @@ const departments = [
       {
         title: "Submit Report",
         description: "Click the 'Create Report' button to submit your daily report.",
-        icon: CheckCircle2
+        icon: CheckCircle2,
+        screenshot: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&h=500&fit=crop"
       }
     ]
   },
@@ -263,8 +267,17 @@ export default function Help() {
                                 <h4 className="text-lg font-semibold text-slate-900">{step.title}</h4>
                               </div>
                               <p className="text-slate-600 whitespace-pre-line leading-relaxed">
-                                {step.description}
+                               {step.description}
                               </p>
+                              {step.screenshot && (
+                               <div className="mt-4">
+                                 <img 
+                                   src={step.screenshot} 
+                                   alt={step.title}
+                                   className="rounded-lg border border-slate-200 shadow-sm w-full"
+                                 />
+                               </div>
+                              )}
                             </div>
                           </div>
                         </CardContent>
