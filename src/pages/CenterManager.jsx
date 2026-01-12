@@ -537,10 +537,10 @@ export default function CenterManager() {
                             <Input
                               type="number"
                               min="0"
-                              value={editingProjections[branch]?.projected_patients || 0}
+                              value={editingProjections[branch]?.projected_patients ?? ''}
                               onChange={(e) => setEditingProjections(prev => ({
                                 ...prev,
-                                [branch]: { ...prev[branch], projected_patients: parseInt(e.target.value) || 0 }
+                                [branch]: { ...prev[branch], projected_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                               }))}
                             />
                           </div>
@@ -549,10 +549,10 @@ export default function CenterManager() {
                             <Input
                               type="number"
                               min="0"
-                              value={editingProjections[branch]?.projected_revenue || 0}
+                              value={editingProjections[branch]?.projected_revenue ?? ''}
                               onChange={(e) => setEditingProjections(prev => ({
                                 ...prev,
-                                [branch]: { ...prev[branch], projected_revenue: parseInt(e.target.value) || 0 }
+                                [branch]: { ...prev[branch], projected_revenue: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                               }))}
                             />
                           </div>
@@ -622,7 +622,7 @@ export default function CenterManager() {
                       value={newReport.center_manager.number_of_patients}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        center_manager: { ...newReport.center_manager, number_of_patients: parseInt(e.target.value) || 0 }
+                        center_manager: { ...newReport.center_manager, number_of_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -634,7 +634,7 @@ export default function CenterManager() {
                       value={newReport.center_manager.revenue}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        center_manager: { ...newReport.center_manager, revenue: parseInt(e.target.value) || 0 }
+                        center_manager: { ...newReport.center_manager, revenue: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -647,7 +647,7 @@ export default function CenterManager() {
                       value={newReport.center_manager.tracking_days}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        center_manager: { ...newReport.center_manager, tracking_days: parseInt(e.target.value) || 30 }
+                        center_manager: { ...newReport.center_manager, tracking_days: e.target.value === '' ? '' : parseInt(e.target.value) || 30 }
                       })}
                     />
                     <p className="text-xs text-slate-500">Used to calculate deviation against monthly projection</p>
@@ -668,7 +668,18 @@ export default function CenterManager() {
                     Cancel
                   </Button>
                   <Button 
-                    onClick={() => createMutation.mutate(newReport)}
+                    onClick={() => {
+                      const reportToSubmit = {
+                        ...newReport,
+                        center_manager: {
+                          ...newReport.center_manager,
+                          number_of_patients: parseInt(newReport.center_manager.number_of_patients) || 0,
+                          revenue: parseInt(newReport.center_manager.revenue) || 0,
+                          tracking_days: parseInt(newReport.center_manager.tracking_days) || 30
+                        }
+                      };
+                      createMutation.mutate(reportToSubmit);
+                    }}
                     disabled={createMutation.isPending || !newReport.branch}
                     className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                   >
@@ -694,10 +705,10 @@ export default function CenterManager() {
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.center_manager?.number_of_patients || 0}
+                      value={editDialog.center_manager?.number_of_patients ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        center_manager: { ...editDialog.center_manager, number_of_patients: parseInt(e.target.value) || 0 }
+                        center_manager: { ...editDialog.center_manager, number_of_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -706,10 +717,10 @@ export default function CenterManager() {
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.center_manager?.revenue || 0}
+                      value={editDialog.center_manager?.revenue ?? ''}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        center_manager: { ...editDialog.center_manager, revenue: parseInt(e.target.value) || 0 }
+                        center_manager: { ...editDialog.center_manager, revenue: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -719,10 +730,10 @@ export default function CenterManager() {
                       type="number"
                       min="1"
                       max="30"
-                      value={editDialog.center_manager?.tracking_days || 30}
+                      value={editDialog.center_manager?.tracking_days ?? 30}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        center_manager: { ...editDialog.center_manager, tracking_days: parseInt(e.target.value) || 30 }
+                        center_manager: { ...editDialog.center_manager, tracking_days: e.target.value === '' ? '' : parseInt(e.target.value) || 30 }
                       })}
                     />
                     <p className="text-xs text-slate-500">Used to calculate deviation against monthly projection</p>
@@ -743,7 +754,18 @@ export default function CenterManager() {
                     Cancel
                   </Button>
                   <Button 
-                    onClick={() => updateMutation.mutate({ id: editDialog.id, data: editDialog })}
+                    onClick={() => {
+                      const reportToSubmit = {
+                        ...editDialog,
+                        center_manager: {
+                          ...editDialog.center_manager,
+                          number_of_patients: parseInt(editDialog.center_manager?.number_of_patients) || 0,
+                          revenue: parseInt(editDialog.center_manager?.revenue) || 0,
+                          tracking_days: parseInt(editDialog.center_manager?.tracking_days) || 30
+                        }
+                      };
+                      updateMutation.mutate({ id: editDialog.id, data: reportToSubmit });
+                    }}
                     disabled={updateMutation.isPending}
                     className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                   >
