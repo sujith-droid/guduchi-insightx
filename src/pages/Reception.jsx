@@ -352,6 +352,10 @@ export default function Reception() {
                       {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                   </div>
+                  
+                  <div className="col-span-2 pt-3 pb-2 border-t border-slate-200">
+                    <Label className="text-sm font-semibold text-slate-700">Consultation</Label>
+                  </div>
                   <div className="space-y-2">
                     <Label>New Patients</Label>
                     <Input
@@ -375,6 +379,10 @@ export default function Reception() {
                         reception: { ...newReport.reception, old_patients: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
+                  </div>
+                  
+                  <div className="col-span-2 pt-3 pb-2 border-t border-slate-200">
+                    <Label className="text-sm font-semibold text-slate-700">Appointments & No-shows</Label>
                   </div>
                   <div className="space-y-2">
                     <Label>Appointments</Label>
@@ -463,6 +471,9 @@ export default function Reception() {
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 pb-2 border-b border-slate-200">
+                    <Label className="text-sm font-semibold text-slate-700">Consultation</Label>
+                  </div>
                   <div className="space-y-2">
                     <Label>New Patients</Label>
                     <Input
@@ -487,6 +498,10 @@ export default function Reception() {
                       })}
                     />
                   </div>
+                  
+                  <div className="col-span-2 pt-3 pb-2 border-t border-slate-200">
+                    <Label className="text-sm font-semibold text-slate-700">Appointments & No-shows</Label>
+                  </div>
                   <div className="space-y-2">
                     <Label>Appointments</Label>
                     <Input
@@ -510,6 +525,10 @@ export default function Reception() {
                         reception: { ...editDialog.reception, no_shows: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }
                       })}
                     />
+                  </div>
+                  
+                  <div className="col-span-2 pt-3 pb-2 border-t border-slate-200">
+                    <Label className="text-sm font-semibold text-slate-700">QR Code Scans</Label>
                   </div>
                   <div className="space-y-2">
                     <Label>YouTube QR</Label>
