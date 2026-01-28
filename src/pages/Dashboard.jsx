@@ -60,7 +60,7 @@ export default function Dashboard() {
   const totalRevenue = filteredBranchReports.reduce((sum, r) => sum + ((r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)), 0);
   const totalLeads = filteredMarketingReports.reduce((sum, r) => sum + ((r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0)), 0);
 
-  const conversionRate = totalWalkIns > 0 ? ((totalConversions / totalWalkIns) * 100).toFixed(1) : 0;
+  const conversionRate = totalLeads > 0 ? ((totalConversions / totalLeads) * 100).toFixed(1) : 0;
 
   // Branch comparison data
   const branchComparisonData = BRANCHES.map(branch => {
