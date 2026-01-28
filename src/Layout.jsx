@@ -33,7 +33,6 @@ import { cn } from "@/lib/utils";
 import AccessDenied from "./components/AccessDenied";
 
 const NAV_ITEMS = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard", departments: ["Analyst"], analystAdminOnly: true },
   { name: "Online Consultation", icon: Users, page: "OnlineConsultation", departments: ["Analyst", "Center Manager"], branchSpecific: "Online Consultation" },
   { name: "Reception", icon: Users, page: "Reception", departments: ["Analyst", "Reception", "Center Manager"] },
   { name: "Customer Support", icon: Phone, page: "CustomerSupport", departments: ["Analyst", "Customer Support", "Center Manager"] },
