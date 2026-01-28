@@ -15,6 +15,7 @@ import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
 import TrendChart from "@/components/dashboard/TrendChart";
 import BranchComparisonChart from "@/components/dashboard/BranchComparisonChart";
 import ReportTable from "@/components/dashboard/ReportTable";
+import MonthlyTracker from "@/components/dashboard/MonthlyTracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
@@ -202,6 +203,8 @@ export default function CustomerSupport() {
             <DateRangeSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
           </div>
         </div>
+
+        <MonthlyTracker reports={branchReports.filter(r => r.branch === (currentUser?.branch || selectedBranch) && r.customer_support)} />
 
         {/* Quick Branch Filters for Analyst, CEO & Admin */}
         {(currentUser?.department === "Analyst" || currentUser?.department === "CEO" || currentUser?.role === "admin") && (

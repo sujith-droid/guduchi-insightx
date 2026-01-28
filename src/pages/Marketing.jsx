@@ -17,6 +17,7 @@ import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
 import TrendChart from "@/components/dashboard/TrendChart";
 import BranchComparisonChart from "@/components/dashboard/BranchComparisonChart";
 import ReportTable from "@/components/dashboard/ReportTable";
+import MonthlyTracker from "@/components/dashboard/MonthlyTracker";
 
 const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
 
@@ -180,6 +181,8 @@ export default function Marketing() {
             <DateRangeSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
           </div>
         </div>
+
+        <MonthlyTracker reports={marketingReports.filter(r => r.branch === (currentUser?.branch || selectedBranch))} />
 
         {/* Quick Branch Filters for Analyst, Digital Marketing, CEO & Admin */}
         {(currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO" || currentUser?.role === "admin") && (
