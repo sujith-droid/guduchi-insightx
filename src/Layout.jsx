@@ -15,8 +15,10 @@ import {
   X,
   ChevronDown,
   Building2,
-  LogOut
+  LogOut,
+  Bell
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -75,6 +77,43 @@ export default function Layout({ children, currentPageName }) {
             window.location.href = createPageUrl(firstAccessiblePage.page);
           }
         }
+
+        // Daily reminder at 6 PM
+        const checkAndNotify = () => {
+          const now = new Date();
+          const hour = now.getHours();
+          const minute = now.getMinutes();
+          
+          // Check if it's 6 PM (18:00)
+          if (hour === 18 && minute === 0) {
+            toast.info("⏰ Daily Reminder: Please update today's report!", {
+              duration: 10000,
+              action: {
+                label: "Update Now",
+                onClick: () => {
+                  // Navigate based on user department
+                  if (user.department === "Reception") {
+                    window.location.href = createPageUrl("Reception");
+                  } else if (user.department === "Customer Support") {
+                    window.location.href = createPageUrl("CustomerSupport");
+                  } else if (user.department === "Pharmacy") {
+                    window.location.href = createPageUrl("Pharmacy");
+                  } else if (user.department === "Digital Marketing") {
+                    window.location.href = createPageUrl("Marketing");
+                  } else if (user.department === "Center Manager") {
+                    window.location.href = createPageUrl("CenterManager");
+                  }
+                }
+              }
+            });
+          }
+        };
+
+        // Check every minute
+        const interval = setInterval(checkAndNotify, 60000);
+        checkAndNotify(); // Initial check
+
+        return () => clearInterval(interval);
       } catch (e) {
         // Not logged in
       }

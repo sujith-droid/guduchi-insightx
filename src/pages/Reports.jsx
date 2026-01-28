@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, subDays, parseISO, isWithinInterval, startOfWeek, startOfMonth, endOfWeek, endOfMonth } from "date-fns";
+import { format, subDays, parseISO, isWithinInterval, startOfWeek, startOfMonth, endOfWeek, endOfMonth, subMonths } from "date-fns";
 import { FileText, Download, Calendar, BarChart3, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,10 @@ export default function Reports() {
   const [dateRange, setDateRange] = useState({
     from: subDays(new Date(), 6),
     to: new Date()
+  });
+  const [previousMonthRange, setPreviousMonthRange] = useState({
+    from: startOfMonth(subMonths(new Date(), 1)),
+    to: endOfMonth(subMonths(new Date(), 1))
   });
   const [reportType, setReportType] = useState("daily");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -76,6 +80,13 @@ export default function Reports() {
     return inRange && matchesBranch;
   });
 
+  const previousMonthReports = branchReports.filter(report => {
+    const reportDate = parseISO(report.report_date);
+    const inRange = isWithinInterval(reportDate, { start: previousMonthRange.from, end: previousMonthRange.to });
+    const matchesBranch = selectedBranch === "All Branches" || report.branch === selectedBranch;
+    return inRange && matchesBranch;
+  });
+
   // Generate summary reports
   const generateSummary = (reports, mktReports) => {
     return {
@@ -95,6 +106,16 @@ export default function Reports() {
     marketingReports.filter(r => {
       const reportDate = parseISO(r.report_date);
       const inRange = isWithinInterval(reportDate, { start: dateRange.from, end: dateRange.to });
+      const matchesBranch = selectedBranch === "All Branches" || r.branch === selectedBranch;
+      return inRange && matchesBranch;
+    })
+  );
+
+  const previousMonthSummary = generateSummary(
+    previousMonthReports,
+    marketingReports.filter(r => {
+      const reportDate = parseISO(r.report_date);
+      const inRange = isWithinInterval(reportDate, { start: previousMonthRange.from, end: previousMonthRange.to });
       const matchesBranch = selectedBranch === "All Branches" || r.branch === selectedBranch;
       return inRange && matchesBranch;
     })
@@ -233,44 +254,78 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Summary Card */}
-        <Card className="border-0 shadow-sm mb-8">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-slate-800">Period Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.walkIns}</p>
-                <p className="text-xs text-slate-500">Walk-ins</p>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-slate-800">Current Period Summary</CardTitle>
+              <p className="text-xs text-slate-500">{format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d, yyyy")}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-slate-50 rounded-lg">
+                  <p className="text-xl font-semibold text-slate-900">{currentSummary.walkIns}</p>
+                  <p className="text-xs text-slate-500">Walk-ins</p>
+                </div>
+                <div className="text-center p-3 bg-slate-50 rounded-lg">
+                  <p className="text-xl font-semibold text-slate-900">{currentSummary.conversions}</p>
+                  <p className="text-xs text-slate-500">Conversions</p>
+                </div>
+                <div className="text-center p-3 bg-slate-50 rounded-lg">
+                  <p className="text-xl font-semibold text-slate-900">{currentSummary.calls}</p>
+                  <p className="text-xs text-slate-500">Calls</p>
+                </div>
+                <div className="text-center p-3 bg-slate-50 rounded-lg">
+                  <p className="text-xl font-semibold text-slate-900">₹{(currentSummary.revenue / 1000).toFixed(1)}K</p>
+                  <p className="text-xs text-slate-500">Revenue</p>
+                </div>
+                <div className="text-center p-3 bg-slate-50 rounded-lg">
+                  <p className="text-xl font-semibold text-slate-900">{currentSummary.leads}</p>
+                  <p className="text-xs text-slate-500">Leads</p>
+                </div>
+                <div className="text-center p-3 bg-slate-50 rounded-lg">
+                  <p className="text-xl font-semibold text-slate-900">{currentSummary.googleReviews}</p>
+                  <p className="text-xs text-slate-500">Reviews</p>
+                </div>
               </div>
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.conversions}</p>
-                <p className="text-xs text-slate-500">Conversions</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-slate-800">Previous Month Summary</CardTitle>
+              <p className="text-xs text-slate-500">{format(previousMonthRange.from, "MMM d")} - {format(previousMonthRange.to, "MMM d, yyyy")}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                  <p className="text-xl font-semibold text-indigo-900">{previousMonthSummary.walkIns}</p>
+                  <p className="text-xs text-indigo-600">Walk-ins</p>
+                </div>
+                <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                  <p className="text-xl font-semibold text-indigo-900">{previousMonthSummary.conversions}</p>
+                  <p className="text-xs text-indigo-600">Conversions</p>
+                </div>
+                <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                  <p className="text-xl font-semibold text-indigo-900">{previousMonthSummary.calls}</p>
+                  <p className="text-xs text-indigo-600">Calls</p>
+                </div>
+                <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                  <p className="text-xl font-semibold text-indigo-900">₹{(previousMonthSummary.revenue / 1000).toFixed(1)}K</p>
+                  <p className="text-xs text-indigo-600">Revenue</p>
+                </div>
+                <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                  <p className="text-xl font-semibold text-indigo-900">{previousMonthSummary.leads}</p>
+                  <p className="text-xs text-indigo-600">Leads</p>
+                </div>
+                <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                  <p className="text-xl font-semibold text-indigo-900">{previousMonthSummary.googleReviews}</p>
+                  <p className="text-xs text-indigo-600">Reviews</p>
+                </div>
               </div>
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.calls}</p>
-                <p className="text-xs text-slate-500">Answered Calls</p>
-              </div>
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">₹{(currentSummary.revenue / 1000).toFixed(1)}K</p>
-                <p className="text-xs text-slate-500">Revenue</p>
-              </div>
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.leads}</p>
-                <p className="text-xs text-slate-500">Marketing Leads</p>
-              </div>
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">₹{(currentSummary.pharmacySales / 1000).toFixed(1)}K</p>
-                <p className="text-xs text-slate-500">Pharmacy Sales</p>
-              </div>
-              <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-semibold text-slate-900">{currentSummary.googleReviews}</p>
-                <p className="text-xs text-slate-500">Reviews</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Pre-generated Reports */}
         <Card className="border-0 shadow-sm mb-8">
@@ -301,6 +356,33 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Previous Month Reports Table */}
+        {previousMonthReports.length > 0 && (
+          <div className="mb-8">
+            <ReportTable
+              title={`Previous Month Reports - ${format(previousMonthRange.from, "MMMM yyyy")}`}
+              data={previousMonthReports.map(r => ({
+                date: format(parseISO(r.report_date), "MMM d, yyyy"),
+                branch: r.branch,
+                walkIns: r.center_manager?.number_of_patients || 0,
+                conversions: (r.reception?.drp_conversion || 0) + (r.reception?.trial_pack_conversion || 0),
+                calls: r.customer_support?.total_answered_calls || 0,
+                revenue: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0),
+                pharmacySales: (r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)
+              })).sort((a, b) => new Date(b.date) - new Date(a.date))}
+              columns={[
+                { header: "Date", accessor: "date" },
+                { header: "Branch", accessor: "branch" },
+                { header: "Walk-ins", accessor: "walkIns" },
+                { header: "Conversions", accessor: "conversions" },
+                { header: "Calls", accessor: "calls" },
+                { header: "Revenue", accessor: "revenue", render: (val) => `₹${val.toLocaleString()}` },
+                { header: "Pharmacy", accessor: "pharmacySales", render: (val) => `₹${val.toLocaleString()}` }
+              ]}
+            />
+          </div>
+        )}
 
         {/* All Reports Table */}
         <ReportTable
