@@ -14,6 +14,7 @@ import KPICard from "@/components/dashboard/KPICard";
 import BranchSelector from "@/components/dashboard/BranchSelector";
 import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
 import ReportTable from "@/components/dashboard/ReportTable";
+import MonthlyTracker from "@/components/dashboard/MonthlyTracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -332,6 +333,8 @@ export default function CenterManager() {
             <DateRangeSelector dateRange={dateRange} onDateRangeChange={setDateRange} />
           </div>
         </div>
+
+        <MonthlyTracker reports={branchReports.filter(r => r.branch === (currentUser?.branch || selectedBranch) && r.center_manager)} />
 
         {/* Quick Branch Filters for Analyst, CEO & Admin */}
         {(currentUser?.department === "Analyst" || currentUser?.department === "CEO" || currentUser?.role === "admin") && (
