@@ -13,6 +13,7 @@ import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
 import KPICard from "@/components/dashboard/KPICard";
 import TrendChart from "@/components/dashboard/TrendChart";
 import ReportTable from "@/components/dashboard/ReportTable";
+import MonthlyTracker from "@/components/dashboard/MonthlyTracker";
 
 export default function OnlineConsultation() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -157,6 +158,8 @@ export default function OnlineConsultation() {
             </Button>
           </div>
         </div>
+
+        <MonthlyTracker reports={reports} />
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
