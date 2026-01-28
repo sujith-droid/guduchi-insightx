@@ -54,32 +54,31 @@ export default function Dashboard() {
   });
 
   // Calculate KPIs
-  const totalWalkIns = filteredBranchReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0);
-  const totalConversions = filteredBranchReports.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0);
-  const totalCalls = filteredBranchReports.reduce((sum, r) => sum + (r.customer_support?.incoming_calls || 0), 0);
-  const totalRevenue = filteredBranchReports.reduce((sum, r) => sum + (r.pharmacy?.revenue || 0), 0);
-  const totalLeads = filteredMarketingReports.reduce((sum, r) => sum + (r.leads_generated || 0), 0);
-  const totalSpend = filteredMarketingReports.reduce((sum, r) => sum + (r.spend || 0), 0);
+  const totalWalkIns = filteredBranchReports.reduce((sum, r) => sum + ((r.reception?.new_patients || 0) + (r.reception?.old_patients || 0)), 0);
+  const totalConversions = filteredBranchReports.reduce((sum, r) => sum + ((r.pharmacy?.drp_conversion || 0) + (r.pharmacy?.trial_pack_conversion || 0)), 0);
+  const totalCalls = filteredBranchReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0);
+  const totalRevenue = filteredBranchReports.reduce((sum, r) => sum + ((r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)), 0);
+  const totalLeads = filteredMarketingReports.reduce((sum, r) => sum + ((r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0)), 0);
 
   const conversionRate = totalWalkIns > 0 ? ((totalConversions / totalWalkIns) * 100).toFixed(1) : 0;
-  const costPerLead = totalLeads > 0 ? (totalSpend / totalLeads).toFixed(2) : 0;
 
   // Branch comparison data
   const branchComparisonData = BRANCHES.map(branch => {
     const branchData = filteredBranchReports.filter(r => r.branch === branch);
     return {
       branch,
-      walkIns: branchData.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
-      revenue: branchData.reduce((sum, r) => sum + (r.pharmacy?.revenue || 0), 0),
-      conversions: branchData.reduce((sum, r) => sum + (r.reception?.conversions || 0), 0)
+      walkIns: branchData.reduce((sum, r) => sum + ((r.reception?.new_patients || 0) + (r.reception?.old_patients || 0)), 0),
+      revenue: branchData.reduce((sum, r) => sum + ((r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)), 0),
+      conversions: branchData.reduce((sum, r) => sum + ((r.pharmacy?.drp_conversion || 0) + (r.pharmacy?.trial_pack_conversion || 0)), 0)
     };
   });
 
   // Marketing source data
-  const sourceData = ["Meta", "Google", "WhatsApp", "Organic", "Referral", "Other"].map(source => ({
-    source,
-    value: filteredMarketingReports.filter(r => r.source === source).reduce((sum, r) => sum + (r.leads_generated || 0), 0)
-  })).filter(s => s.value > 0);
+  const sourceData = [
+    { source: "Call Leads", value: filteredMarketingReports.reduce((sum, r) => sum + (r.call_leads || 0), 0) },
+    { source: "WhatsApp Leads", value: filteredMarketingReports.reduce((sum, r) => sum + (r.whatsapp_leads || 0), 0) },
+    { source: "Form Leads", value: filteredMarketingReports.reduce((sum, r) => sum + (r.instant_form_leads || 0), 0) }
+  ].filter(s => s.value > 0);
 
   // Trend data for chart
   const trendData = [];
@@ -90,9 +89,9 @@ export default function Dashboard() {
     const dayMarketing = filteredMarketingReports.filter(r => r.report_date === dateStr);
     trendData.push({
       date: format(currentDate, "MMM d"),
-      walkIns: dayReports.reduce((sum, r) => sum + (r.reception?.walk_ins || 0), 0),
-      leads: dayMarketing.reduce((sum, r) => sum + (r.leads_generated || 0), 0),
-      revenue: dayReports.reduce((sum, r) => sum + (r.pharmacy?.revenue || 0), 0)
+      walkIns: dayReports.reduce((sum, r) => sum + ((r.reception?.new_patients || 0) + (r.reception?.old_patients || 0)), 0),
+      leads: dayMarketing.reduce((sum, r) => sum + ((r.call_leads || 0) + (r.whatsapp_leads || 0) + (r.instant_form_leads || 0)), 0),
+      revenue: dayReports.reduce((sum, r) => sum + ((r.pharmacy?.cash || 0) + (r.pharmacy?.paytm_swipe || 0)), 0)
     });
     currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
   }
@@ -102,21 +101,20 @@ export default function Dashboard() {
     walkIns: totalWalkIns,
     appointments: filteredBranchReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0),
     noShows: filteredBranchReports.reduce((sum, r) => sum + (r.reception?.no_shows || 0), 0),
-    cancellations: filteredBranchReports.reduce((sum, r) => sum + (r.reception?.cancellations || 0), 0)
+    newPatients: filteredBranchReports.reduce((sum, r) => sum + (r.reception?.new_patients || 0), 0)
   };
 
   const supportData = {
     calls: totalCalls,
-    missed: filteredBranchReports.reduce((sum, r) => sum + (r.customer_support?.missed_calls || 0), 0),
-    resolved: filteredBranchReports.reduce((sum, r) => sum + (r.customer_support?.resolved || 0), 0),
-    pending: filteredBranchReports.reduce((sum, r) => sum + (r.customer_support?.pending_follow_ups || 0), 0)
+    appointments: filteredBranchReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0),
+    outbound: filteredBranchReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0)
   };
 
   const pharmacyData = {
-    orders: filteredBranchReports.reduce((sum, r) => sum + (r.pharmacy?.daily_orders || 0), 0),
+    cash: filteredBranchReports.reduce((sum, r) => sum + (r.pharmacy?.cash || 0), 0),
     revenue: totalRevenue,
-    pending: filteredBranchReports.reduce((sum, r) => sum + (r.pharmacy?.pending_dispatches || 0), 0),
-    alerts: filteredBranchReports.reduce((sum, r) => sum + (r.pharmacy?.stock_alerts || 0), 0)
+    drp: filteredBranchReports.reduce((sum, r) => sum + (r.pharmacy?.drp_conversion || 0), 0),
+    reviews: filteredBranchReports.reduce((sum, r) => sum + (r.pharmacy?.google_reviews || 0), 0)
   };
 
   const isLoading = loadingBranch || loadingMarketing;
