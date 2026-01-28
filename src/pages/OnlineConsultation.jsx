@@ -119,13 +119,15 @@ export default function OnlineConsultation() {
         >
           <Edit2 className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => deleteReportMutation.mutate(r.id)}
-        >
-          <Trash2 className="w-4 h-4 text-red-500" />
-        </Button>
+        {currentUser?.role === "admin" && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => deleteReportMutation.mutate(r.id)}
+          >
+            <Trash2 className="w-4 h-4 text-red-500" />
+          </Button>
+        )}
       </div>
     )
   }));

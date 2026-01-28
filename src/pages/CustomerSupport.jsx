@@ -313,13 +313,15 @@ export default function CustomerSupport() {
                   <Button variant="ghost" size="sm" onClick={() => setEditDialog(row.report)}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => {
-                    if (confirm("Are you sure you want to delete this report?")) {
-                      deleteMutation.mutate(row.id);
-                    }
-                  }}>
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </Button>
+                  {currentUser?.role === "admin" && (
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      if (confirm("Are you sure you want to delete this report?")) {
+                        deleteMutation.mutate(row.id);
+                      }
+                    }}>
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  )}
                 </div>
               )
             }
