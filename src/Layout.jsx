@@ -38,7 +38,7 @@ const NAV_ITEMS = [
   { name: "Reception", icon: Users, page: "Reception", departments: ["Analyst", "Reception", "Center Manager"] },
   { name: "Customer Support", icon: Phone, page: "CustomerSupport", departments: ["Analyst", "Customer Support", "Center Manager"] },
   { name: "Pharmacy", icon: Package, page: "Pharmacy", departments: ["Analyst", "Pharmacy", "Center Manager"] },
-  { name: "Digital Marketing", icon: Megaphone, page: "Marketing", departments: ["Analyst", "Digital Marketing", "Center Manager"] },
+  { name: "Digital Marketing", icon: Megaphone, page: "Marketing", departments: ["Analyst", "Digital Marketing"] },
   { name: "Center Manager", icon: ClipboardList, page: "CenterManager", departments: ["Analyst", "Center Manager"] },
   { name: "Reports", icon: FileText, page: "Reports", departments: ["Analyst", "Center Manager"] },
   { name: "User Management", icon: Users, page: "UserManagement", adminOnly: true },
