@@ -111,12 +111,36 @@ export default function Marketing() {
     return inRange && matchesBranch;
   });
 
-  // KPIs
+  // Previous period for comparison
+  const daysDiff = Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)) + 1;
+  const previousPeriodStart = subDays(dateRange.from, daysDiff);
+  const previousPeriodEnd = subDays(dateRange.to, daysDiff);
+  
+  const previousReports = marketingReports.filter(report => {
+    const reportDate = parseISO(report.report_date);
+    const inRange = isWithinInterval(reportDate, { start: previousPeriodStart, end: previousPeriodEnd });
+    const matchesBranch = selectedBranch === "All Branches" || report.branch === selectedBranch;
+    return inRange && matchesBranch;
+  });
+
+  // Current period KPIs
   const totalCallLeads = filteredReports.reduce((sum, r) => sum + (r.call_leads || 0), 0);
   const totalWhatsappLeads = filteredReports.reduce((sum, r) => sum + (r.whatsapp_leads || 0), 0);
   const totalInstantFormLeads = filteredReports.reduce((sum, r) => sum + (r.instant_form_leads || 0), 0);
   const totalLeads = totalCallLeads + totalWhatsappLeads + totalInstantFormLeads;
   const avgLeadsPerDay = filteredReports.length > 0 ? (totalLeads / filteredReports.length).toFixed(1) : 0;
+
+  // Previous period KPIs
+  const prevCallLeads = previousReports.reduce((sum, r) => sum + (r.call_leads || 0), 0);
+  const prevWhatsappLeads = previousReports.reduce((sum, r) => sum + (r.whatsapp_leads || 0), 0);
+  const prevInstantFormLeads = previousReports.reduce((sum, r) => sum + (r.instant_form_leads || 0), 0);
+  const prevTotalLeads = prevCallLeads + prevWhatsappLeads + prevInstantFormLeads;
+
+  // Calculate percentage changes
+  const totalLeadsChange = prevTotalLeads > 0 ? (((totalLeads - prevTotalLeads) / prevTotalLeads) * 100).toFixed(1) : 0;
+  const callLeadsChange = prevCallLeads > 0 ? (((totalCallLeads - prevCallLeads) / prevCallLeads) * 100).toFixed(1) : 0;
+  const whatsappLeadsChange = prevWhatsappLeads > 0 ? (((totalWhatsappLeads - prevWhatsappLeads) / prevWhatsappLeads) * 100).toFixed(1) : 0;
+  const formLeadsChange = prevInstantFormLeads > 0 ? (((totalInstantFormLeads - prevInstantFormLeads) / prevInstantFormLeads) * 100).toFixed(1) : 0;
 
   // Trend data
   const trendData = [];
@@ -211,10 +235,10 @@ export default function Marketing() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <KPICard title="Total Leads" value={totalLeads} icon={Target} trend="up" change={15} />
-          <KPICard title="Call Leads" value={totalCallLeads} icon={Phone} trend="up" />
-          <KPICard title="WhatsApp Leads" value={totalWhatsappLeads} icon={Target} trend="up" />
-          <KPICard title="Form Leads" value={totalInstantFormLeads} icon={Target} trend="up" />
+          <KPICard title="Total Leads" value={totalLeads} icon={Target} trend={parseFloat(totalLeadsChange) >= 0 ? "up" : "down"} change={Math.abs(totalLeadsChange)} />
+          <KPICard title="Call Leads" value={totalCallLeads} icon={Phone} trend={parseFloat(callLeadsChange) >= 0 ? "up" : "down"} change={Math.abs(callLeadsChange)} />
+          <KPICard title="WhatsApp Leads" value={totalWhatsappLeads} icon={Target} trend={parseFloat(whatsappLeadsChange) >= 0 ? "up" : "down"} change={Math.abs(whatsappLeadsChange)} />
+          <KPICard title="Form Leads" value={totalInstantFormLeads} icon={Target} trend={parseFloat(formLeadsChange) >= 0 ? "up" : "down"} change={Math.abs(formLeadsChange)} />
         </div>
 
         {/* Charts Row */}

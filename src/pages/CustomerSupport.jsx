@@ -108,10 +108,32 @@ export default function CustomerSupport() {
     return inRange && matchesBranch;
   });
 
-  // KPIs
+  // Previous period for comparison
+  const daysDiff = Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)) + 1;
+  const previousPeriodStart = subDays(dateRange.from, daysDiff);
+  const previousPeriodEnd = subDays(dateRange.to, daysDiff);
+  
+  const previousReports = branchReports.filter(report => {
+    const reportDate = parseISO(report.report_date);
+    const inRange = isWithinInterval(reportDate, { start: previousPeriodStart, end: previousPeriodEnd });
+    const matchesBranch = selectedBranch === "All Branches" || report.branch === selectedBranch;
+    return inRange && matchesBranch;
+  });
+
+  // Current period KPIs
   const totalAnsweredCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0);
   const totalAppointments = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0);
   const totalOutboundCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0);
+
+  // Previous period KPIs
+  const prevAnsweredCalls = previousReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0);
+  const prevAppointments = previousReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0);
+  const prevOutboundCalls = previousReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0);
+
+  // Calculate percentage changes
+  const answeredCallsChange = prevAnsweredCalls > 0 ? (((totalAnsweredCalls - prevAnsweredCalls) / prevAnsweredCalls) * 100).toFixed(1) : 0;
+  const appointmentsChange = prevAppointments > 0 ? (((totalAppointments - prevAppointments) / prevAppointments) * 100).toFixed(1) : 0;
+  const outboundCallsChange = prevOutboundCalls > 0 ? (((totalOutboundCalls - prevOutboundCalls) / prevOutboundCalls) * 100).toFixed(1) : 0;
 
   // Get all unique executives from all reports
   const allExecutives = new Set();
@@ -233,9 +255,9 @@ export default function CustomerSupport() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <KPICard title="Answered Calls" value={totalAnsweredCalls} icon={Phone} trend="up" change={5} />
-          <KPICard title="Total Appointments" value={totalAppointments} icon={Calendar} trend="up" change={10} />
-          <KPICard title="Outbound Calls" value={totalOutboundCalls} icon={PhoneOutgoing} trend="up" change={8} />
+          <KPICard title="Answered Calls" value={totalAnsweredCalls} icon={Phone} trend={parseFloat(answeredCallsChange) >= 0 ? "up" : "down"} change={Math.abs(answeredCallsChange)} />
+          <KPICard title="Total Appointments" value={totalAppointments} icon={Calendar} trend={parseFloat(appointmentsChange) >= 0 ? "up" : "down"} change={Math.abs(appointmentsChange)} />
+          <KPICard title="Outbound Calls" value={totalOutboundCalls} icon={PhoneOutgoing} trend={parseFloat(outboundCallsChange) >= 0 ? "up" : "down"} change={Math.abs(outboundCallsChange)} />
         </div>
 
         {/* Executive Performance */}

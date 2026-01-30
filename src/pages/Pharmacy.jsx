@@ -118,7 +118,19 @@ export default function Pharmacy() {
     return inRange && matchesBranch;
   });
 
-  // KPIs - Calculate totals
+  // Previous period for comparison
+  const daysDiff = Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)) + 1;
+  const previousPeriodStart = subDays(dateRange.from, daysDiff);
+  const previousPeriodEnd = subDays(dateRange.to, daysDiff);
+  
+  const previousReports = branchReports.filter(report => {
+    const reportDate = parseISO(report.report_date);
+    const inRange = isWithinInterval(reportDate, { start: previousPeriodStart, end: previousPeriodEnd });
+    const matchesBranch = selectedBranch === "All Branches" || report.branch === selectedBranch;
+    return inRange && matchesBranch;
+  });
+
+  // Current period KPIs
   const totalCash = filteredReports.reduce((sum, r) => sum + (r.pharmacy?.cash || 0), 0);
   const totalPaytmSwipe = filteredReports.reduce((sum, r) => sum + (r.pharmacy?.paytm_swipe || 0), 0);
   const totalExpenses = filteredReports.reduce((sum, r) => sum + (r.pharmacy?.expenses || 0), 0);
@@ -128,6 +140,18 @@ export default function Pharmacy() {
   const totalTestimonialVideos = filteredReports.reduce((sum, r) => sum + (r.pharmacy?.customer_testimonial_videos || 0), 0);
   
   const totalSales = totalCash + totalPaytmSwipe;
+
+  // Previous period KPIs
+  const prevCash = previousReports.reduce((sum, r) => sum + (r.pharmacy?.cash || 0), 0);
+  const prevPaytmSwipe = previousReports.reduce((sum, r) => sum + (r.pharmacy?.paytm_swipe || 0), 0);
+  const prevSales = prevCash + prevPaytmSwipe;
+  const prevDrpConversion = previousReports.reduce((sum, r) => sum + (r.pharmacy?.drp_conversion || 0), 0);
+  const prevTrialPackConversion = previousReports.reduce((sum, r) => sum + (r.pharmacy?.trial_pack_conversion || 0), 0);
+
+  // Calculate percentage changes
+  const salesChange = prevSales > 0 ? (((totalSales - prevSales) / prevSales) * 100).toFixed(1) : 0;
+  const drpChange = prevDrpConversion > 0 ? (((totalDrpConversion - prevDrpConversion) / prevDrpConversion) * 100).toFixed(1) : 0;
+  const trialPackChange = prevTrialPackConversion > 0 ? (((totalTrialPackConversion - prevTrialPackConversion) / prevTrialPackConversion) * 100).toFixed(1) : 0;
 
   // Trend data
   const trendData = [];
@@ -236,23 +260,24 @@ export default function Pharmacy() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KPICard title="Cash" value={`₹${(totalCash / 1000).toFixed(1)}K`} icon={DollarSign} trend="up" />
-          <KPICard title="Paytm/Swipe" value={`₹${(totalPaytmSwipe / 1000).toFixed(1)}K`} icon={CreditCard} trend="up" />
+          <KPICard title="Cash" value={`₹${(totalCash / 1000).toFixed(1)}K`} icon={DollarSign} />
+          <KPICard title="Paytm/Swipe" value={`₹${(totalPaytmSwipe / 1000).toFixed(1)}K`} icon={CreditCard} />
           <KPICard title="Expenses" value={`₹${(totalExpenses / 1000).toFixed(1)}K`} icon={TrendingDown} />
           <KPICard 
             title="Total Sales" 
             value={`₹${(totalSales / 1000).toFixed(1)}K`} 
             icon={DollarSign} 
-            trend="up" 
+            trend={parseFloat(salesChange) >= 0 ? "up" : "down"}
+            change={Math.abs(salesChange)}
           />
         </div>
 
         {/* Conversions & Testimonials */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <KPICard title="DRP Conversions" value={totalDrpConversion} icon={UserCheck} trend="up" />
-          <KPICard title="Trial Pack" value={totalTrialPackConversion} icon={UserCheck} trend="up" />
-          <KPICard title="Google Reviews" value={totalGoogleReviews} icon={Star} trend="up" />
-          <KPICard title="Testimonial Videos" value={totalTestimonialVideos} icon={Video} trend="up" />
+          <KPICard title="DRP Conversions" value={totalDrpConversion} icon={UserCheck} trend={parseFloat(drpChange) >= 0 ? "up" : "down"} change={Math.abs(drpChange)} />
+          <KPICard title="Trial Pack" value={totalTrialPackConversion} icon={UserCheck} trend={parseFloat(trialPackChange) >= 0 ? "up" : "down"} change={Math.abs(trialPackChange)} />
+          <KPICard title="Google Reviews" value={totalGoogleReviews} icon={Star} />
+          <KPICard title="Testimonial Videos" value={totalTestimonialVideos} icon={Video} />
         </div>
 
         {/* Charts */}

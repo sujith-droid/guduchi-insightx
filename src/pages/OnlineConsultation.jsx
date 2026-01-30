@@ -82,12 +82,34 @@ export default function OnlineConsultation() {
     return isWithinInterval(reportDate, { start: dateRange.from, end: dateRange.to });
   });
 
-  // Calculate KPIs
+  // Previous period for comparison
+  const daysDiff = Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)) + 1;
+  const previousPeriodStart = subDays(dateRange.from, daysDiff);
+  const previousPeriodEnd = subDays(dateRange.to, daysDiff);
+  
+  const previousReports = reports.filter(report => {
+    const reportDate = parseISO(report.report_date);
+    return isWithinInterval(reportDate, { start: previousPeriodStart, end: previousPeriodEnd });
+  });
+
+  // Current period KPIs
   const totalRevenue = filteredReports.reduce((sum, r) => sum + (r.revenue || 0), 0);
   const totalConsultations = filteredReports.reduce((sum, r) => sum + (r.number_of_consultations || 0), 0);
   const totalTrialPacks = filteredReports.reduce((sum, r) => sum + (r.one_month_trial_pack || 0), 0);
   const totalDRP = filteredReports.reduce((sum, r) => sum + (r.drp || 0), 0);
   const avgRevenuePerDay = filteredReports.length > 0 ? totalRevenue / filteredReports.length : 0;
+
+  // Previous period KPIs
+  const prevRevenue = previousReports.reduce((sum, r) => sum + (r.revenue || 0), 0);
+  const prevConsultations = previousReports.reduce((sum, r) => sum + (r.number_of_consultations || 0), 0);
+  const prevTrialPacks = previousReports.reduce((sum, r) => sum + (r.one_month_trial_pack || 0), 0);
+  const prevDRP = previousReports.reduce((sum, r) => sum + (r.drp || 0), 0);
+
+  // Calculate percentage changes
+  const revenueChange = prevRevenue > 0 ? (((totalRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : 0;
+  const consultationsChange = prevConsultations > 0 ? (((totalConsultations - prevConsultations) / prevConsultations) * 100).toFixed(1) : 0;
+  const trialPacksChange = prevTrialPacks > 0 ? (((totalTrialPacks - prevTrialPacks) / prevTrialPacks) * 100).toFixed(1) : 0;
+  const drpChange = prevDRP > 0 ? (((totalDRP - prevDRP) / prevDRP) * 100).toFixed(1) : 0;
 
   // Prepare trend data
   const trendData = filteredReports
@@ -168,21 +190,29 @@ export default function OnlineConsultation() {
             value={`₹${totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             subtitle={`Avg ₹${Math.round(avgRevenuePerDay).toLocaleString()}/day`}
+            trend={parseFloat(revenueChange) >= 0 ? "up" : "down"}
+            change={Math.abs(revenueChange)}
           />
           <KPICard
             title="Consultations"
             value={totalConsultations}
             icon={Users}
+            trend={parseFloat(consultationsChange) >= 0 ? "up" : "down"}
+            change={Math.abs(consultationsChange)}
           />
           <KPICard
             title="Trial Packs"
             value={totalTrialPacks}
             icon={Package}
+            trend={parseFloat(trialPacksChange) >= 0 ? "up" : "down"}
+            change={Math.abs(trialPacksChange)}
           />
           <KPICard
             title="DRP"
             value={totalDRP}
             icon={ShoppingCart}
+            trend={parseFloat(drpChange) >= 0 ? "up" : "down"}
+            change={Math.abs(drpChange)}
           />
           <KPICard
             title="Total Conversions"

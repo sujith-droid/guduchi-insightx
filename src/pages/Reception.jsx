@@ -114,7 +114,19 @@ export default function Reception() {
     return inRange && matchesBranch;
   });
 
-  // KPIs
+  // Previous period for comparison
+  const daysDiff = Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)) + 1;
+  const previousPeriodStart = subDays(dateRange.from, daysDiff);
+  const previousPeriodEnd = subDays(dateRange.to, daysDiff);
+  
+  const previousReports = branchReports.filter(report => {
+    const reportDate = parseISO(report.report_date);
+    const inRange = isWithinInterval(reportDate, { start: previousPeriodStart, end: previousPeriodEnd });
+    const matchesBranch = selectedBranch === "All Branches" || report.branch === selectedBranch;
+    return inRange && matchesBranch;
+  });
+
+  // Current period KPIs
   const totalNewPatients = filteredReports.reduce((sum, r) => sum + (r.reception?.new_patients || 0), 0);
   const totalOldPatients = filteredReports.reduce((sum, r) => sum + (r.reception?.old_patients || 0), 0);
   const totalConsultations = totalNewPatients + totalOldPatients;
@@ -123,6 +135,18 @@ export default function Reception() {
   const totalYoutubeScans = filteredReports.reduce((sum, r) => sum + (r.reception?.youtube_qr_scans || 0), 0);
   const totalInstagramScans = filteredReports.reduce((sum, r) => sum + (r.reception?.instagram_qr_scans || 0), 0);
   const totalFacebookScans = filteredReports.reduce((sum, r) => sum + (r.reception?.facebook_qr_scans || 0), 0);
+
+  // Previous period KPIs
+  const prevNewPatients = previousReports.reduce((sum, r) => sum + (r.reception?.new_patients || 0), 0);
+  const prevOldPatients = previousReports.reduce((sum, r) => sum + (r.reception?.old_patients || 0), 0);
+  const prevConsultations = prevNewPatients + prevOldPatients;
+  const prevAppointments = previousReports.reduce((sum, r) => sum + (r.reception?.appointments || 0), 0);
+  const prevNoShows = previousReports.reduce((sum, r) => sum + (r.reception?.no_shows || 0), 0);
+
+  // Calculate percentage changes
+  const consultationsChange = prevConsultations > 0 ? (((totalConsultations - prevConsultations) / prevConsultations) * 100).toFixed(1) : 0;
+  const appointmentsChange = prevAppointments > 0 ? (((totalAppointments - prevAppointments) / prevAppointments) * 100).toFixed(1) : 0;
+  const noShowsChange = prevNoShows > 0 ? (((totalNoShows - prevNoShows) / prevNoShows) * 100).toFixed(1) : 0;
 
   const noShowRate = totalAppointments > 0 ? ((totalNoShows / totalAppointments) * 100).toFixed(1) : 0;
 
@@ -226,11 +250,11 @@ export default function Reception() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <KPICard title="Total Consultations" value={totalConsultations} icon={Users} trend="up" change={8} />
-          <KPICard title="New Patients" value={totalNewPatients} icon={UserCheck} trend="up" />
-          <KPICard title="Old Patients" value={totalOldPatients} icon={Users} trend="up" />
-          <KPICard title="Appointments" value={totalAppointments} icon={Calendar} trend="up" change={12} />
-          <KPICard title="No-shows" value={totalNoShows} icon={UserX} trend={totalNoShows > 0 ? "down" : "up"} />
+          <KPICard title="Total Consultations" value={totalConsultations} icon={Users} trend={parseFloat(consultationsChange) >= 0 ? "up" : "down"} change={Math.abs(consultationsChange)} />
+          <KPICard title="New Patients" value={totalNewPatients} icon={UserCheck} />
+          <KPICard title="Old Patients" value={totalOldPatients} icon={Users} />
+          <KPICard title="Appointments" value={totalAppointments} icon={Calendar} trend={parseFloat(appointmentsChange) >= 0 ? "up" : "down"} change={Math.abs(appointmentsChange)} />
+          <KPICard title="No-shows" value={totalNoShows} icon={UserX} trend={parseFloat(noShowsChange) >= 0 ? "down" : "up"} change={Math.abs(noShowsChange)} />
         </div>
 
         {/* QR Code Scans */}
