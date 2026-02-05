@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import AccessDenied from "./components/AccessDenied";
+import UserSetup from "./components/UserSetup";
 
 const NAV_ITEMS = [
   { name: "Online Consultation", icon: Users, page: "OnlineConsultation", departments: ["Analyst", "Center Manager"], branchSpecific: "Online Consultation" },
@@ -67,6 +68,11 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+        
+        // Refresh user data after setup
+        if (!user?.branch || !user?.department) {
+          return; // UserSetup component will handle this
+        }
         
         // Redirect to first accessible page if on root or inaccessible page
         const currentPath = window.location.pathname;
@@ -141,8 +147,22 @@ export default function Layout({ children, currentPageName }) {
     return canAccessPage(currentPageItem, currentUser);
   };
 
+  const handleSetupComplete = async () => {
+    // Reload user data after setup
+    try {
+      const user = await base44.auth.me();
+      setCurrentUser(user);
+      window.location.reload(); // Refresh to apply new permissions
+    } catch (e) {
+      console.error("Failed to reload user", e);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* User Setup Dialog */}
+      {currentUser && <UserSetup user={currentUser} onComplete={handleSetupComplete} />}
+      
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
