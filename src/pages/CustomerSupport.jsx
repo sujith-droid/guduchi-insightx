@@ -34,7 +34,8 @@ export default function CustomerSupport() {
     branch: "",
     customer_support: {
       total_answered_calls: 0,
-      total_appointments: 0,
+      new_appointments: 0,
+      old_appointments: 0,
       total_outbound_calls: 0,
       executive_data: []
     }
@@ -66,7 +67,8 @@ export default function CustomerSupport() {
         branch: "",
         customer_support: {
           total_answered_calls: 0,
-          total_appointments: 0,
+          new_appointments: 0,
+          old_appointments: 0,
           total_outbound_calls: 0,
           executive_data: []
         }
@@ -122,12 +124,16 @@ export default function CustomerSupport() {
 
   // Current period KPIs
   const totalAnsweredCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0);
-  const totalAppointments = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0);
+  const totalNewAppointments = filteredReports.reduce((sum, r) => sum + (r.customer_support?.new_appointments || 0), 0);
+  const totalOldAppointments = filteredReports.reduce((sum, r) => sum + (r.customer_support?.old_appointments || 0), 0);
+  const totalAppointments = totalNewAppointments + totalOldAppointments;
   const totalOutboundCalls = filteredReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0);
 
   // Previous period KPIs
   const prevAnsweredCalls = previousReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0);
-  const prevAppointments = previousReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0);
+  const prevNewAppointments = previousReports.reduce((sum, r) => sum + (r.customer_support?.new_appointments || 0), 0);
+  const prevOldAppointments = previousReports.reduce((sum, r) => sum + (r.customer_support?.old_appointments || 0), 0);
+  const prevAppointments = prevNewAppointments + prevOldAppointments;
   const prevOutboundCalls = previousReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0);
 
   // Calculate percentage changes
@@ -172,10 +178,12 @@ export default function CustomerSupport() {
   while (currentDate <= dateRange.to) {
     const dateStr = format(currentDate, "yyyy-MM-dd");
     const dayReports = filteredReports.filter(r => r.report_date === dateStr);
+    const dayNew = dayReports.reduce((sum, r) => sum + (r.customer_support?.new_appointments || 0), 0);
+    const dayOld = dayReports.reduce((sum, r) => sum + (r.customer_support?.old_appointments || 0), 0);
     trendData.push({
       date: format(currentDate, "MMM d"),
       answered: dayReports.reduce((sum, r) => sum + (r.customer_support?.total_answered_calls || 0), 0),
-      appointments: dayReports.reduce((sum, r) => sum + (r.customer_support?.total_appointments || 0), 0),
+      appointments: dayNew + dayOld,
       outbound: dayReports.reduce((sum, r) => sum + (r.customer_support?.total_outbound_calls || 0), 0)
     });
     currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
@@ -191,15 +199,19 @@ export default function CustomerSupport() {
   });
 
   // Table data
-  const tableData = filteredReports.map(r => ({
-    id: r.id,
-    report: r,
-    date: format(parseISO(r.report_date), "MMM d, yyyy"),
-    branch: r.branch,
-    answered: r.customer_support?.total_answered_calls || 0,
-    appointments: r.customer_support?.total_appointments || 0,
-    outbound: r.customer_support?.total_outbound_calls || 0
-  })).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const tableData = filteredReports.map(r => {
+    const newAppt = r.customer_support?.new_appointments || 0;
+    const oldAppt = r.customer_support?.old_appointments || 0;
+    return {
+      id: r.id,
+      report: r,
+      date: format(parseISO(r.report_date), "MMM d, yyyy"),
+      branch: r.branch,
+      answered: r.customer_support?.total_answered_calls || 0,
+      appointments: newAppt + oldAppt,
+      outbound: r.customer_support?.total_outbound_calls || 0
+    };
+  }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -393,15 +405,27 @@ export default function CustomerSupport() {
                       })}
                     />
                   </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Total Appointments</Label>
+                  <div className="space-y-2">
+                    <Label>New Appointments</Label>
                     <Input
                       type="number"
                       min="0"
-                      value={newReport.customer_support.total_appointments}
+                      value={newReport.customer_support.new_appointments}
                       onChange={(e) => setNewReport({
                         ...newReport,
-                        customer_support: { ...newReport.customer_support, total_appointments: parseInt(e.target.value) || 0 }
+                        customer_support: { ...newReport.customer_support, new_appointments: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Old Appointments</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newReport.customer_support.old_appointments}
+                      onChange={(e) => setNewReport({
+                        ...newReport,
+                        customer_support: { ...newReport.customer_support, old_appointments: parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
@@ -456,15 +480,27 @@ export default function CustomerSupport() {
                       })}
                     />
                   </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Total Appointments</Label>
+                  <div className="space-y-2">
+                    <Label>New Appointments</Label>
                     <Input
                       type="number"
                       min="0"
-                      value={editDialog.customer_support?.total_appointments || 0}
+                      value={editDialog.customer_support?.new_appointments || 0}
                       onChange={(e) => setEditDialog({
                         ...editDialog,
-                        customer_support: { ...editDialog.customer_support, total_appointments: parseInt(e.target.value) || 0 }
+                        customer_support: { ...editDialog.customer_support, new_appointments: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Old Appointments</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDialog.customer_support?.old_appointments || 0}
+                      onChange={(e) => setEditDialog({
+                        ...editDialog,
+                        customer_support: { ...editDialog.customer_support, old_appointments: parseInt(e.target.value) || 0 }
                       })}
                     />
                   </div>
