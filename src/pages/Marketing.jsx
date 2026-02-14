@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays, parseISO, isWithinInterval } from "date-fns";
-import { Target, TrendingUp, Phone, Plus, Edit, Trash2 } from "lucide-react";
+import { Target, TrendingUp, Phone, Plus, Edit, Trash2, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,9 @@ export default function Marketing() {
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [newReport, setNewReport] = useState({
     report_date: format(new Date(), "yyyy-MM-dd"),
     branch: "Bangalore",
@@ -102,6 +105,84 @@ export default function Marketing() {
 
   const handleSubmitReport = () => {
     createReportMutation.mutate(newReport);
+  };
+
+  const downloadSampleExcel = () => {
+    const csv = `date,branch,call_leads,whatsapp_leads,instant_form_leads,notes
+2026-02-01,Bangalore,25,30,15,Sample notes for day 1
+2026-02-02,Udupi,18,22,12,Sample notes for day 2
+2026-02-03,Chennai,20,28,14,
+2026-02-04,Hyderabad,22,25,13,Sample notes for day 4`;
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'marketing_leads_sample.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      toast.error("Please select a file");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Upload file
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: uploadFile });
+      
+      // Extract data from file
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              date: { type: "string" },
+              branch: { type: "string" },
+              call_leads: { type: "number" },
+              whatsapp_leads: { type: "number" },
+              instant_form_leads: { type: "number" },
+              notes: { type: "string" }
+            },
+            required: ["date", "branch"]
+          }
+        }
+      });
+
+      if (result.status === "error") {
+        toast.error(result.details || "Failed to extract data from file");
+        return;
+      }
+
+      // Transform and create reports
+      const reports = result.output.map(row => ({
+        report_date: row.date,
+        branch: row.branch,
+        call_leads: row.call_leads || 0,
+        whatsapp_leads: row.whatsapp_leads || 0,
+        instant_form_leads: row.instant_form_leads || 0,
+        notes: row.notes || ""
+      }));
+
+      // Bulk create
+      await base44.entities.MarketingReport.bulkCreate(reports);
+      
+      queryClient.invalidateQueries({ queryKey: ["marketingReports"] });
+      setShowBulkUploadDialog(false);
+      setUploadFile(null);
+      toast.success(`Successfully imported ${reports.length} reports`);
+    } catch (error) {
+      toast.error("Failed to upload reports");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const filteredReports = marketingReports.filter(report => {
@@ -190,10 +271,16 @@ export default function Marketing() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {currentUser?.department === "Digital Marketing" && (
-              <Button onClick={() => setShowAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Report
-              </Button>
+              <>
+                <Button onClick={() => setShowAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Report
+                </Button>
+                <Button onClick={() => setShowBulkUploadDialog(true)} variant="outline">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Upload
+                </Button>
+              </>
             )}
             {currentUser?.department === "Analyst" || currentUser?.department === "Digital Marketing" || currentUser?.department === "CEO" || currentUser?.role === "admin" ? (
               <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
@@ -369,6 +456,68 @@ export default function Marketing() {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Bulk Upload Dialog */}
+        <Dialog open={showBulkUploadDialog} onOpenChange={setShowBulkUploadDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Bulk Upload Marketing Reports</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <p className="text-sm text-slate-600 mb-3">
+                  Upload a CSV or Excel file with your marketing lead data. The file should contain the following columns:
+                </p>
+                <ul className="text-xs text-slate-500 space-y-1 mb-3">
+                  <li>• <strong>date</strong> (YYYY-MM-DD format)</li>
+                  <li>• <strong>branch</strong> (Bangalore, Udupi, Chennai, etc.)</li>
+                  <li>• <strong>call_leads</strong> (number)</li>
+                  <li>• <strong>whatsapp_leads</strong> (number)</li>
+                  <li>• <strong>instant_form_leads</strong> (number)</li>
+                  <li>• <strong>notes</strong> (optional text)</li>
+                </ul>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={downloadSampleExcel}
+                  className="w-full"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Sample File
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Upload File</Label>
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => setUploadFile(e.target.files[0])}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowBulkUploadDialog(false);
+                    setUploadFile(null);
+                  }} 
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleBulkUpload}
+                  disabled={isUploading || !uploadFile}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {isUploading ? "Uploading..." : "Upload"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Add Report Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
