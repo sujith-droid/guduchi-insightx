@@ -1,0 +1,49 @@
+{
+  "name": "MarketingReport",
+  "type": "object",
+  "properties": {
+    "report_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the report"
+    },
+    "branch": {
+      "type": "string",
+      "enum": [
+        "Bangalore",
+        "Udupi",
+        "Chennai",
+        "Hyderabad",
+        "Hubballi",
+        "Kolkata",
+        "Ahmedabad",
+        "Kalaburgi",
+        "Online Consultation"
+      ],
+      "description": "Branch attribution"
+    },
+    "call_leads": {
+      "type": "number",
+      "description": "Number of leads from phone calls",
+      "default": 0
+    },
+    "whatsapp_leads": {
+      "type": "number",
+      "description": "Number of leads from WhatsApp",
+      "default": 0
+    },
+    "instant_form_leads": {
+      "type": "number",
+      "description": "Number of leads from instant forms",
+      "default": 0
+    },
+    "notes": {
+      "type": "string",
+      "description": "Daily notes and observations"
+    }
+  },
+  "required": [
+    "report_date",
+    "branch"
+  ]
+}

@@ -18,7 +18,7 @@ import BranchComparisonChart from "@/components/dashboard/BranchComparisonChart"
 import ReportTable from "@/components/dashboard/ReportTable";
 import MonthlyTracker from "@/components/dashboard/MonthlyTracker";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
+const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Ahmedabad", "Kalaburgi"];
 
 export default function Reception() {
   const [selectedBranch, setSelectedBranch] = useState("All Branches");

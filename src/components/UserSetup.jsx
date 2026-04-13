@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Online Consultation"];
+const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Ahmedabad", "Kalaburgi", "Online Consultation"];
 const DEPARTMENTS = ["Reception", "Customer Support", "Pharmacy", "Digital Marketing", "Center Manager", "Analyst", "CEO"];
 
 export default function UserSetup({ user, onComplete }) {

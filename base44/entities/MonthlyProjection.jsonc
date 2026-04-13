@@ -1,0 +1,40 @@
+{
+  "name": "MonthlyProjection",
+  "type": "object",
+  "properties": {
+    "branch": {
+      "type": "string",
+      "enum": [
+        "Bangalore",
+        "Udupi",
+        "Chennai",
+        "Hyderabad",
+        "Hubballi",
+        "Kolkata",
+        "Ahmedabad",
+        "Kalaburgi",
+        "Online Consultation"
+      ],
+      "description": "Branch name"
+    },
+    "month": {
+      "type": "string",
+      "format": "date",
+      "description": "Month for projection (YYYY-MM-01)"
+    },
+    "projected_patients": {
+      "type": "number",
+      "description": "Projected patients for the month",
+      "default": 0
+    },
+    "projected_revenue": {
+      "type": "number",
+      "description": "Projected revenue for the month",
+      "default": 0
+    }
+  },
+  "required": [
+    "branch",
+    "month"
+  ]
+}

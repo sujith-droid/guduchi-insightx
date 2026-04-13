@@ -14,7 +14,7 @@ import TrendChart from "@/components/dashboard/TrendChart";
 import MarketingSourceChart from "@/components/dashboard/MarketingSourceChart";
 import ExportButton from "@/components/dashboard/ExportButton";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
+const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Ahmedabad", "Kalaburgi"];
 
 export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState(null);

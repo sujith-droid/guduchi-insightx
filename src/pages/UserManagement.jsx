@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-const BRANCHES = ["All Branches", "Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Online Consultation"];
+const BRANCHES = ["All Branches", "Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Ahmedabad", "Kalaburgi", "Online Consultation"];
 const DEPARTMENTS = ["CEO", "Analyst", "Reception", "Customer Support", "Pharmacy", "Digital Marketing", "Center Manager"];
 
 export default function UserManagement() {

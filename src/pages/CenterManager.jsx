@@ -18,7 +18,7 @@ import MonthlyTracker from "@/components/dashboard/MonthlyTracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
+const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Ahmedabad", "Kalaburgi"];
 
 export default function CenterManager() {
   const [selectedBranch, setSelectedBranch] = useState("All Branches");

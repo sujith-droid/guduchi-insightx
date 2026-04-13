@@ -1,0 +1,175 @@
+{
+  "name": "BranchReport",
+  "type": "object",
+  "properties": {
+    "branch": {
+      "type": "string",
+      "enum": [
+        "Bangalore",
+        "Udupi",
+        "Chennai",
+        "Hyderabad",
+        "Hubballi",
+        "Kolkata",
+        "Ahmedabad",
+        "Kalaburgi",
+        "Online Consultation"
+      ],
+      "description": "Branch name"
+    },
+    "report_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the report"
+    },
+    "reception": {
+      "type": "object",
+      "properties": {
+        "walk_ins": {
+          "type": "number",
+          "description": "Legacy field - total walk-ins"
+        },
+        "new_patients": {
+          "type": "number",
+          "description": "Number of new patients"
+        },
+        "old_patients": {
+          "type": "number",
+          "description": "Number of old/returning patients"
+        },
+        "appointments": {
+          "type": "number"
+        },
+        "conversions": {
+          "type": "number",
+          "description": "Legacy field - total conversions"
+        },
+        "no_shows": {
+          "type": "number"
+        },
+        "youtube_qr_scans": {
+          "type": "number",
+          "description": "Total YouTube QR code scans"
+        },
+        "instagram_qr_scans": {
+          "type": "number",
+          "description": "Total Instagram QR code scans"
+        },
+        "facebook_qr_scans": {
+          "type": "number",
+          "description": "Total Facebook QR code scans"
+        }
+      }
+    },
+    "customer_support": {
+      "type": "object",
+      "properties": {
+        "total_answered_calls": {
+          "type": "number"
+        },
+        "new_appointments": {
+          "type": "number",
+          "description": "Number of new appointments"
+        },
+        "old_appointments": {
+          "type": "number",
+          "description": "Number of old/returning appointments"
+        },
+        "total_outbound_calls": {
+          "type": "number"
+        },
+        "executive_data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "executive_name": {
+                "type": "string"
+              },
+              "appointment_count": {
+                "type": "number"
+              },
+              "followups": {
+                "type": "number"
+              },
+              "confirmed_appointments": {
+                "type": "number"
+              },
+              "warm_appointments": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "pharmacy": {
+      "type": "object",
+      "properties": {
+        "cash": {
+          "type": "number"
+        },
+        "paytm_swipe": {
+          "type": "number",
+          "description": "Paytm/Swipe payments"
+        },
+        "expenses": {
+          "type": "number"
+        },
+        "drp_conversion": {
+          "type": "number",
+          "description": "DRP conversions"
+        },
+        "trial_pack_conversion": {
+          "type": "number",
+          "description": "Trial Pack conversions"
+        },
+        "reasons_not_buying": {
+          "type": "string",
+          "description": "Reasons for not buying medicine"
+        },
+        "patient_id_not_buying": {
+          "type": "string",
+          "description": "Patient ID associated with not buying"
+        },
+        "google_reviews": {
+          "type": "number",
+          "description": "Number of Google reviews"
+        },
+        "customer_testimonial_videos": {
+          "type": "number",
+          "description": "Number of customer testimonial videos recorded"
+        }
+      }
+    },
+    "center_manager": {
+      "type": "object",
+      "properties": {
+        "number_of_patients": {
+          "type": "number"
+        },
+        "revenue": {
+          "type": "number"
+        },
+        "projected_patients": {
+          "type": "number"
+        },
+        "projected_revenue": {
+          "type": "number"
+        },
+        "tracking_days": {
+          "type": "number",
+          "description": "Number of days for deviation calculation",
+          "default": 30
+        },
+        "operational_notes": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "branch",
+    "report_date"
+  ]
+}

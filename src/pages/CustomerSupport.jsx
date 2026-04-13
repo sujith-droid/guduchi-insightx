@@ -18,7 +18,7 @@ import ReportTable from "@/components/dashboard/ReportTable";
 import MonthlyTracker from "@/components/dashboard/MonthlyTracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata"];
+const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Ahmedabad", "Kalaburgi"];
 
 export default function CustomerSupport() {
   const [selectedBranch, setSelectedBranch] = useState("All Branches");

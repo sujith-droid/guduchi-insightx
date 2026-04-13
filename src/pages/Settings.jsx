@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "HQ"];
+const BRANCHES = ["Bangalore", "Udupi", "Chennai", "Hyderabad", "Hubballi", "Kolkata", "Ahmedabad", "Kalaburgi", "HQ"];
 const DEPARTMENTS = ["Reception", "Customer Support", "Pharmacy", "Center Manager", "Digital Marketing", "Leadership", "Admin"];
 const ACCESS_LEVELS = [
   { value: "branch", label: "Branch Access", description: "View only assigned branch data" },
