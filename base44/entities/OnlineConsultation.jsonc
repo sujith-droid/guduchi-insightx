@@ -1,0 +1,30 @@
+{
+  "name": "OnlineConsultation",
+  "type": "object",
+  "properties": {
+    "report_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the report"
+    },
+    "revenue": {
+      "type": "number",
+      "description": "Daily revenue from online consultations"
+    },
+    "number_of_consultations": {
+      "type": "number",
+      "description": "Number of online consultations"
+    },
+    "one_month_trial_pack": {
+      "type": "number",
+      "description": "Number of one month trial packs sold"
+    },
+    "drp": {
+      "type": "number",
+      "description": "Number of DRP conversions"
+    }
+  },
+  "required": [
+    "report_date"
+  ]
+}

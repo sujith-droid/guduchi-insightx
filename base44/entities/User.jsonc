@@ -1,0 +1,36 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "branch": {
+      "type": "string",
+      "enum": [
+        "Bangalore",
+        "Udupi",
+        "Chennai",
+        "Hyderabad",
+        "Hubballi",
+        "Kolkata",
+        "Online Consultation"
+      ],
+      "description": "Branch assignment for the user"
+    },
+    "department": {
+      "type": "string",
+      "enum": [
+        "Reception",
+        "Customer Support",
+        "Pharmacy",
+        "Digital Marketing",
+        "Center Manager",
+        "Analyst",
+        "CEO"
+      ],
+      "description": "Department assignment for the user"
+    }
+  },
+  "required": [
+    "branch",
+    "department"
+  ]
+}
